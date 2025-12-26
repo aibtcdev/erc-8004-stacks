@@ -5,20 +5,24 @@ const deployer = accounts.get("deployer")!;
 const wallet_1 = accounts.get("wallet_1")!;
 const wallet_2 = accounts.get("wallet_2")!;
 
+const deployDummyAgent = () => {
+  const agentCode = `(define-read-only (ping) (ok u1))`;
+  const deployResult = simnet.deployContract(
+    "dummy-agent",
+    agentCode,
+    deployer.address
+  );
+  expect(deployResult.result).toBeOk();
+  return deployResult.value!.address;
+};
+
 describe("base-registry", () => {
   it("is initialized", () => {
     expect(simnet.blockHeight).toBeUint(0);
   });
 
   it("registers an agent successfully", () => {
-    const agentCode = `(define-read-only (ping) (ok u1))`;
-    const deployResult = simnet.deployContract(
-      "dummy-agent",
-      agentCode,
-      deployer.address
-    );
-    expect(deployResult.result).toBeOk();
-    const agentAddr = deployResult.value!.address;
+    const agentAddr = deployDummyAgent();
 
     const name = stringUtf8CV("MyAgent");
     const desc = stringUtf8CV("Trades BTC");
@@ -47,15 +51,8 @@ describe("base-registry", () => {
     expect(details).toBeSome();
   });
 
-  it("fails to register duplicate agent for same owner", () => {
-    const agentCode = `(define-read-only (ping) (ok u1))`;
-    const deployResult = simnet.deployContract(
-      "dummy-agent",
-      agentCode,
-      deployer.address
-    );
-    expect(deployResult.result).toBeOk();
-    const agentAddr = deployResult.value!.address;
+  it("fails to register second agent for same owner", () => {
+    const agent1 = deployDummyAgent();
 
     const name = stringUtf8CV("MyAgent");
     const desc = stringUtf8CV("Trades BTC");
@@ -64,39 +61,38 @@ describe("base-registry", () => {
     const firstCall = simnet.callPublicFn(
       "base-registry",
       "register-agent",
-      [principalCV(agentAddr), name, desc],
+      [principalCV(agent1), name, desc],
       wallet_1.address
     );
-    expect(firstCall.result).toBeOk();
+    expect(firstCall.result).toBeOk().toBeHexString();
+
+    const agent2 = deployDummyAgent();
+    const name2 = stringUtf8CV("MyAgent2");
+    const desc2 = stringUtf8CV("Trades BTC2");
 
     // second register
     const secondCall = simnet.callPublicFn(
       "base-registry",
       "register-agent",
-      [principalCV(agentAddr), name, desc],
+      [principalCV(agent2), name2, desc2],
       wallet_1.address
     );
     expect(secondCall.result).toBeErr(u100);
   });
 
   it("owner can deregister agent", () => {
-    const agentCode = `(define-read-only (ping) (ok u1))`;
-    const deployResult = simnet.deployContract(
-      "dummy-agent",
-      agentCode,
-      deployer.address
-    );
-    const agentAddr = deployResult.value!.address;
+    const agentAddr = deployDummyAgent();
 
     const name = stringUtf8CV("MyAgent");
     const desc = stringUtf8CV("Trades BTC");
 
-    simnet.callPublicFn(
+    const regResult = simnet.callPublicFn(
       "base-registry",
       "register-agent",
       [principalCV(agentAddr), name, desc],
       wallet_1.address
     );
+    expect(regResult.result).toBeOk().toBeHexString();
 
     const { result } = simnet.callPublicFn(
       "base-registry",
@@ -113,23 +109,18 @@ describe("base-registry", () => {
   });
 
   it("non-owner cannot deregister", () => {
-    const agentCode = `(define-read-only (ping) (ok u1))`;
-    const deployResult = simnet.deployContract(
-      "dummy-agent",
-      agentCode,
-      deployer.address
-    );
-    const agentAddr = deployResult.value!.address;
+    const agentAddr = deployDummyAgent();
 
     const name = stringUtf8CV("MyAgent");
     const desc = stringUtf8CV("Trades BTC");
 
-    simnet.callPublicFn(
+    const regResult = simnet.callPublicFn(
       "base-registry",
       "register-agent",
       [principalCV(agentAddr), name, desc],
       wallet_1.address
     );
+    expect(regResult.result).toBeOk().toBeHexString();
 
     const { result } = simnet.callPublicFn(
       "base-registry",
@@ -154,23 +145,18 @@ describe("base-registry", () => {
   });
 
   it("read-only functions work", () => {
-    const agentCode = `(define-read-only (ping) (ok u1))`;
-    const deployResult = simnet.deployContract(
-      "dummy-agent",
-      agentCode,
-      deployer.address
-    );
-    const agentAddr = deployResult.value!.address;
+    const agentAddr = deployDummyAgent();
 
     const name = stringUtf8CV("MyAgent");
     const desc = stringUtf8CV("Trades BTC");
 
-    simnet.callPublicFn(
+    const regResult = simnet.callPublicFn(
       "base-registry",
       "register-agent",
       [principalCV(agentAddr), name, desc],
       wallet_1.address
     );
+    expect(regResult.result).toBeOk().toBeHexString();
 
     const roOwner = simnet.callReadOnlyFn(
       "base-registry",

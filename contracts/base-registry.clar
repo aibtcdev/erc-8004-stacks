@@ -83,12 +83,14 @@
       }))
     none))
 
+(define-constant ERR_DESTRUCTING (err u1234))
+
 ;; private functions
 (define-private (is-bare-principal (p principal))
-  (is-none (principal-destruct? p)))
+  (is-none (get name (unwrap! (principal-destruct? p) false))))
 
 (define-private (is-contract-principal (p principal))
-  (is-some (principal-destruct? p)))
+  (is-some (get name (unwrap! (principal-destruct? p) false))))
 
 (define-private (validate-owner-agent (owner principal) (agent principal))
   (begin
@@ -96,9 +98,19 @@
     (asserts! (is-contract-principal agent) ERR_INVALID_AGENT_TYPE)
     (ok true)))
 
-(define-private (compute-agent-id (owner principal) (agent principal) (name (string-utf8 256)) (description (string-utf8 256)))
-  (sha256 (concat
-    (to-ascii owner)
-    (concat (to-ascii agent) (concat name description))
-)))
+(define-constant ERR_HASHING (err u1234))
 
+(define-private (compute-agent-id (owner principal) (agent principal) (name (string-utf8 256)) (description (string-utf8 256)))
+  (let (
+    (agentRecord (to-consensus-buff? {
+      owner: owner,
+      agent: agent,
+      name: name,
+      description: description
+    }))
+  )
+  ;; verify conversion worked
+  (asserts! (is-some agentRecord) ERR_HASHING)
+  ;; extract and return the hash
+  (ok (sha256 (unwrap-panic agentRecord)))
+))

@@ -5,6 +5,8 @@
 
 ;; traits
 ;;
+;; /g/'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard.sip-010-trait/base_trait_sip010
+(use-trait ft-trait 'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard.sip-010-trait)
 
 ;; token definitions
 ;;
@@ -12,7 +14,7 @@
 ;; constants
 (define-constant DEPLOYED_BURN_BLOCK burn-block-height)
 (define-constant DEPLOYED_STACKS_BLOCK stacks-block-height)
-(define-constant SELF (as-contract tx-sender))
+(define-constant SELF (unwrap-panic (as-contract? () tx-sender)))
 
 ;; owner and agent addresses
 (define-constant ACCOUNT_OWNER 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM) ;; owner (user/creator of account, full access)
@@ -31,8 +33,7 @@
 (define-constant PERMISSION_BUY_SELL_ASSETS (pow u2 u2))
 
 ;; contract approval types
-(define-constant APPROVED_CONTRACT_VOTING u1)
-(define-constant APPROVED_CONTRACT_SWAP u2)
+;; TODO: how to better do this
 (define-constant APPROVED_CONTRACT_TOKEN u3)
 
 ;; data maps
@@ -113,7 +114,7 @@
         recipient: ACCOUNT_OWNER,
       },
     })
-    (as-contract (stx-transfer? amount SELF ACCOUNT_OWNER))
+    (as-contract? () (stx-transfer? amount SELF ACCOUNT_OWNER))
   )
 )
 
@@ -138,7 +139,7 @@
         recipient: ACCOUNT_OWNER,
       },
     })
-    (as-contract (contract-call? ft transfer amount SELF ACCOUNT_OWNER none))
+    (as-contract? () (contract-call? ft transfer amount SELF ACCOUNT_OWNER none))
   )
 )
 
@@ -197,9 +198,86 @@
   )
 )
 
+
 ;; read only functions
-;;
+
+(define-read-only (is-approved-contract
+    (contract principal)
+    (type uint)
+  )
+  (default-to false
+    (map-get? ApprovedContracts {
+      contract: contract,
+      type: type,
+    })
+  )
+)
+
+(define-read-only (get-configuration)
+  {
+    account: SELF,
+    agent: ACCOUNT_AGENT,
+    owner: ACCOUNT_OWNER,
+    sbtc: SBTC_TOKEN,
+  }
+)
+
+(define-read-only (get-approval-types)
+  {
+    token: APPROVED_CONTRACT_TOKEN,
+  }
+)
+
+(define-read-only (get-agent-permissions)
+  (let ((permissions (var-get agentPermissions)))
+    {
+      canManageAssets: (not (is-eq u0 (bit-and permissions PERMISSION_MANAGE_ASSETS))),
+      canApproveRevokeContracts: (not (is-eq u0 (bit-and permissions PERMISSION_APPROVE_REVOKE_CONTRACTS))),
+    }
+  )
+)
 
 ;; private functions
 ;;
 
+(define-private (is-owner)
+  (is-eq contract-caller ACCOUNT_OWNER)
+)
+
+(define-private (is-agent)
+  (is-eq contract-caller ACCOUNT_AGENT)
+)
+
+(define-private (is-valid-type (type uint))
+  (or
+    (is-eq type APPROVED_CONTRACT_TOKEN)
+  )
+)
+
+(define-private (manage-assets-allowed)
+  (or (is-owner) (and (is-agent) (not (is-eq u0 (bit-and (var-get agentPermissions) PERMISSION_MANAGE_ASSETS)))))
+)
+
+(define-private (approve-revoke-contract-allowed)
+  (or (is-owner) (and (is-agent) (not (is-eq u0 (bit-and (var-get agentPermissions) PERMISSION_APPROVE_REVOKE_CONTRACTS)))))
+)
+
+;; initialization
+;;
+
+(begin
+  ;; print creation event
+  (print {
+    notification: "aibtc-agent-account/user-agent-account-created",
+    payload: {
+      config: (get-configuration),
+      approvalTypes: (get-approval-types),
+      agentPermissions: (get-agent-permissions),
+    },
+  })
+  ;; auto-register the agent account
+  ;; /g/.agent-account-registry/faktory_agent_account_registry
+  ;;(contract-call? .agent-account-registry auto-register-agent-account
+  ;;  ACCOUNT_OWNER ACCOUNT_AGENT
+  ;;)
+)

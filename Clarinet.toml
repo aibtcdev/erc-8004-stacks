@@ -4,7 +4,9 @@ description = ''
 authors = []
 telemetry = true
 cache_dir = './.cache'
-requirements = []
+
+[[project.requirements]]
+contract_id = 'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard'
 [contracts.addon-attestation]
 path = 'contracts/addon-attestation.clar'
 clarity_version = 4

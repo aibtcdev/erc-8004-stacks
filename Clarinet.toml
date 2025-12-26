@@ -5,14 +5,24 @@ authors = []
 telemetry = true
 cache_dir = './.cache'
 requirements = []
+[contracts.addon-attestation]
+path = 'contracts/addon-attestation.clar'
+clarity_version = 4
+epoch = 'latest'
+
+[contracts.agent-account-example]
+path = 'contracts/agent-account-example.clar'
+clarity_version = 4
+epoch = 'latest'
+
 [contracts.base-registry]
 path = 'contracts/base-registry.clar'
 clarity_version = 4
 epoch = 'latest'
 [repl.analysis]
 passes = [
-    'check_checker',
     'call_checker',
+    'check_checker',
 ]
 
 [repl.analysis.lints]

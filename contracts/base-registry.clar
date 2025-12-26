@@ -83,9 +83,6 @@
       }))
     none))
 
-
-
-
 ;; private functions
 (define-private (is-bare-principal (p principal))
   (is-none (principal-destruct? p)))
@@ -100,7 +97,8 @@
     (ok true)))
 
 (define-private (compute-agent-id (owner principal) (agent principal) (name (string-utf8 256)) (description (string-utf8 256)))
-  (sha256 (concat (hash160 owner)
-                  (concat (hash160 agent)
-                          (concat name description)))))
+  (sha256 (concat
+    (to-ascii owner)
+    (concat (to-ascii agent) (concat name description))
+)))
 

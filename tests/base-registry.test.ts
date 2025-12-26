@@ -1,10 +1,4 @@
-
-import { describe, expect, it, beforeEach } from "vitest";
-
-import {
-  principalCV,
-  stringUtf8CV,
-} from "@stacks/clarinet-sdk/lib/clarity";
+import { describe, expect, it } from "vitest";
 
 const accounts = simnet.getAccounts();
 const deployer = accounts.get("deployer")!;
@@ -12,17 +6,17 @@ const wallet_1 = accounts.get("wallet_1")!;
 const wallet_2 = accounts.get("wallet_2")!;
 
 describe("base-registry", () => {
-  beforeEach(() => {
-    simnet.reset();
-  });
-
   it("is initialized", () => {
     expect(simnet.blockHeight).toBeUint(0);
   });
 
   it("registers an agent successfully", () => {
     const agentCode = `(define-read-only (ping) (ok u1))`;
-    const deployResult = simnet.deployContract("dummy-agent", agentCode, deployer.address);
+    const deployResult = simnet.deployContract(
+      "dummy-agent",
+      agentCode,
+      deployer.address
+    );
     expect(deployResult.result).toBeOk();
     const agentAddr = deployResult.value!.address;
 
@@ -37,31 +31,29 @@ describe("base-registry", () => {
     );
     expect(result).toBeOk().toBeHexString();
 
-    const ownerToAgent = simnet.getMapEntry(
-      "base-registry",
-      "OwnerToAgent",
-      [principalCV(wallet_1.address)]
-    );
+    const ownerToAgent = simnet.getMapEntry("base-registry", "OwnerToAgent", [
+      principalCV(wallet_1.address),
+    ]);
     expect(ownerToAgent).toBeSome(principalCV(agentAddr));
 
-    const agentToOwner = simnet.getMapEntry(
-      "base-registry",
-      "AgentToOwner",
-      [principalCV(agentAddr)]
-    );
+    const agentToOwner = simnet.getMapEntry("base-registry", "AgentToOwner", [
+      principalCV(agentAddr),
+    ]);
     expect(agentToOwner).toBeSome(principalCV(wallet_1.address));
 
-    const details = simnet.getMapEntry(
-      "base-registry",
-      "AgentDetails",
-      [principalCV(agentAddr)]
-    );
+    const details = simnet.getMapEntry("base-registry", "AgentDetails", [
+      principalCV(agentAddr),
+    ]);
     expect(details).toBeSome();
   });
 
   it("fails to register duplicate agent for same owner", () => {
     const agentCode = `(define-read-only (ping) (ok u1))`;
-    const deployResult = simnet.deployContract("dummy-agent", agentCode, deployer.address);
+    const deployResult = simnet.deployContract(
+      "dummy-agent",
+      agentCode,
+      deployer.address
+    );
     expect(deployResult.result).toBeOk();
     const agentAddr = deployResult.value!.address;
 
@@ -89,7 +81,11 @@ describe("base-registry", () => {
 
   it("owner can deregister agent", () => {
     const agentCode = `(define-read-only (ping) (ok u1))`;
-    const deployResult = simnet.deployContract("dummy-agent", agentCode, deployer.address);
+    const deployResult = simnet.deployContract(
+      "dummy-agent",
+      agentCode,
+      deployer.address
+    );
     const agentAddr = deployResult.value!.address;
 
     const name = stringUtf8CV("MyAgent");
@@ -110,17 +106,19 @@ describe("base-registry", () => {
     );
     expect(result).toBeOk();
 
-    const details = simnet.getMapEntry(
-      "base-registry",
-      "AgentDetails",
-      [principalCV(agentAddr)]
-    );
+    const details = simnet.getMapEntry("base-registry", "AgentDetails", [
+      principalCV(agentAddr),
+    ]);
     expect(details).toBeNone();
   });
 
   it("non-owner cannot deregister", () => {
     const agentCode = `(define-read-only (ping) (ok u1))`;
-    const deployResult = simnet.deployContract("dummy-agent", agentCode, deployer.address);
+    const deployResult = simnet.deployContract(
+      "dummy-agent",
+      agentCode,
+      deployer.address
+    );
     const agentAddr = deployResult.value!.address;
 
     const name = stringUtf8CV("MyAgent");
@@ -157,7 +155,11 @@ describe("base-registry", () => {
 
   it("read-only functions work", () => {
     const agentCode = `(define-read-only (ping) (ok u1))`;
-    const deployResult = simnet.deployContract("dummy-agent", agentCode, deployer.address);
+    const deployResult = simnet.deployContract(
+      "dummy-agent",
+      agentCode,
+      deployer.address
+    );
     const agentAddr = deployResult.value!.address;
 
     const name = stringUtf8CV("MyAgent");

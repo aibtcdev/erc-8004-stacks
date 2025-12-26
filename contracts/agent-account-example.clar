@@ -198,6 +198,20 @@
   )
 )
 
+;; owner can set agent permissions
+(define-public (set-agent-permissions (permissions uint))
+  (begin
+    (asserts! (is-owner) ERR_CALLER_NOT_OWNER)
+    (var-set agentPermissions permissions)
+    (print {
+      notification: "aibtc-agent-account/set-agent-permissions",
+      payload: {
+        new-permissions: permissions,
+        setter: contract-caller
+      }
+    })
+    (ok permissions)))
+
 
 ;; read only functions
 
@@ -275,9 +289,6 @@
       agentPermissions: (get-agent-permissions),
     },
   })
-  ;; auto-register the agent account
-  ;; /g/.agent-account-registry/faktory_agent_account_registry
-  ;;(contract-call? .agent-account-registry auto-register-agent-account
-  ;;  ACCOUNT_OWNER ACCOUNT_AGENT
-  ;;)
+  ;; auto-register the agent account with base-registry (owner calls manually after deploy)
+  ;; (contract-call? .base-registry register-agent ACCOUNT_AGENT (string-utf8 "Agent Account Example") (string-utf8 "Example agent account for secure asset management"))
 )

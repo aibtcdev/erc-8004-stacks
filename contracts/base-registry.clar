@@ -14,6 +14,7 @@
 (define-constant ERR_INVALID_OWNER_TYPE (err u102))
 (define-constant ERR_INVALID_AGENT_TYPE (err u103))
 (define-constant ERR_AGENT_NOT_FOUND (err u104))
+(define-constant ERR_HASHING (err u105))
 
 ;; data vars
 ;;
@@ -35,17 +36,16 @@
 
 ;; public functions
 (define-public (register-agent (agent principal) (name (string-utf8 256)) (description (string-utf8 256)))
-  (let (
-        (owner tx-sender)
-        (id (compute-agent-id owner agent name description)))
+  (let ((owner tx-sender))
     (try! (validate-owner-agent owner agent))
     (asserts! (is-none (map-get? OwnerToAgent owner)) ERR_ALREADY_REGISTERED)
     (asserts! (is-none (map-get? AgentDetails agent)) ERR_ALREADY_REGISTERED)
     (map-set AgentDetails agent {owner: owner, name: name, description: description})
     (map-set OwnerToAgent owner agent)
     (map-set AgentToOwner agent owner)
-    (print { event: "agent-registered", owner: owner, agent: agent, id: id })
-    (ok id)))
+    (let ((id (try! (compute-agent-id owner agent name description))))
+      (print { event: "agent-registered", owner: owner, agent: agent, id: id })
+      (ok id))))
 
 (define-public (deregister-agent (agent principal))
   (let (
@@ -57,6 +57,16 @@
     (map-delete AgentToOwner agent)
     (print { event: "agent-deregistered", owner: owner, agent: agent })
     (ok true)))
+
+(define-public (update-agent-details (agent principal) (name (string-utf8 256)) (description (string-utf8 256)))
+  (let (
+        (details (unwrap! (map-get? AgentDetails agent) ERR_AGENT_NOT_FOUND))
+        (owner (get owner details)))
+    (asserts! (is-eq owner tx-sender) ERR_NOT_OWNER)
+    (map-set AgentDetails agent {owner: owner, name: name, description: description})
+    (let ((id (try! (compute-agent-id owner agent name description))))
+      (print { event: "agent-updated", owner: owner, agent: agent, id: id })
+      (ok id))))
 
 ;; read only functions
 (define-read-only (get-agent-by-owner (owner principal))
@@ -74,14 +84,43 @@
           (owner (get owner details))
           (name (get name details))
           (description (get description details)))
-      (some {
-        owner: owner,
-        agent: agent,
-        name: name,
-        description: description,
-        id: (compute-agent-id owner agent name description)
-      }))
+      (match (compute-agent-id owner agent name description)
+        id (some {
+          owner: owner,
+          agent: agent,
+          name: name,
+          description: description,
+          id: id
+        })
+        err none))
     none))
+
+(define-read-only (compute-agent-id-tuple (owner principal) (agent principal) (name (string-utf8 256)) (description (string-utf8 256)))
+  (let (
+    (agentRecord (to-consensus-buff? {
+      owner: owner,
+      agent: agent,
+      name: name,
+      description: description
+    })))
+  (asserts! (is-some agentRecord) ERR_HASHING)
+  (ok (sha256 (unwrap-panic agentRecord)))))
+
+(define-read-only (compute-agent-id-serialized (owner principal) (agent principal) (name (string-utf8 256)) (description (string-utf8 256)))
+  (let* (
+    (owner-b (to-consensus-buff? owner))
+    (agent-b (to-consensus-buff? agent))
+    (name-b (to-consensus-buff? name))
+    (desc-b (to-consensus-buff? description)))
+    (if (and (is-some owner-b) (is-some agent-b) (is-some name-b) (is-some desc-b))
+      (let (
+        (bs (list
+          (unwrap-panic owner-b)
+          (unwrap-panic agent-b)
+          (unwrap-panic name-b)
+          (unwrap-panic desc-b))))
+        (ok (sha256 (fold concat bs 0x))))
+      ERR_HASHING)))
 
 (define-constant ERR_DESTRUCTING (err u1234))
 

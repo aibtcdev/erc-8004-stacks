@@ -20,12 +20,34 @@
 (define-map OwnerToAgent principal principal)
 (define-map AgentToOwner principal principal)
 
+(define-map AgentDetails
+  principal ;; agent address
+  {
+    owner: principal, ;; owner address
+    name: (string-utf8 256),
+    description: (string-utf8 256)
+    id: (buff 32), ;; hash of owner/name/desc
+  }
+)
+
 (define-map OwnerAgentAgreements
   {
     principal ;; owner
     principal ;; agent
   }
   principal ;; contract
+)
+
+(define-map AgreementDetails
+  principal ;; contract
+  {
+    owner: principal,
+    agent: principal,
+    name: (string-utf8 256),
+    description: (string-utf8 256)
+    id: (buff 32), ;; hash of owner/agent/name/desc
+    hash: (buff 32) ;; hash of contract code
+  }
 )
 
 ;; public functions

@@ -24,12 +24,16 @@ Extensible via addons for reputation, attestations, payments (sBTC/x402).
 - [Agent Account Example](docs/agent-account-example.md)
 - [Registry Addon Attestation](docs/registry-addon-attestation.md)
 
-### Repository Contents
+### Usage
 
-- /contracts: Core registry contract (e.g., owner-agent-registry.clar) and example add-ons.
-- /tests: Clarinet tests for registration, queries, and security.
-- /docs: Detailed design rationale, migration from AIBTC patterns, and SIP proposal drafts.
-- Contribution guidelines for extensions (e.g., reputation module).
+```bash
+npm install
+npm test  # Run Vitest/Clarinet tests
+```
+
+**Tests**: `tests/owner-agent-registry.test.ts` (core coverage).
+
+**Deploy**: Use Clarinet simnet; update `Clarinet.toml` for mainnet.
 
 ## Key Resources
 

@@ -12,6 +12,7 @@
 ;; constants
 (define-constant ERR_NOT_AUTHORIZED (err u1000))
 (define-constant ERR_AGENT_NOT_FOUND (err u1001))
+(define-constant ERR_AGENT_ALREADY_EXISTS (err u1002))
 (define-constant MAX_URI_LEN u512)
 (define-constant MAX_KEY_LEN u128)
 (define-constant MAX_VALUE_LEN u512)
@@ -51,9 +52,8 @@
   )
     ;; Atomic update
     (var-set next-agent-id updated-next)
-    ;; TODO: map-set or map-insert w/ asserts?
-    (map-set owners {agent-id: agent-id} owner)
-    (map-set uris {agent-id: agent-id} token-uri)
+    (asserts! (map-insert owners {agent-id: agent-id} owner) ERR_AGENT_ALREADY_EXISTS)
+    (asserts! (map-insert uris {agent-id: agent-id} token-uri) ERR_AGENT_ALREADY_EXISTS)
     
     ;; Set metadata entries
     (fold 

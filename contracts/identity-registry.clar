@@ -72,10 +72,12 @@
     
     (print {
       notification: "identity-registry/Registered",
-      agent-id: agent-id,
-      owner: owner,
-      token-uri: token-uri,
-      metadata-count: (len metadata-entries)
+      payload: {
+        agent-id: agent-id,
+        owner: owner,
+        token-uri: token-uri,
+        metadata-count: (len metadata-entries)
+      }
     })
     (ok agent-id)
   )
@@ -86,9 +88,11 @@
   (map-set uris {agent-id: agent-id} new-uri)
   (print {
     notification: "identity-registry/UriUpdated",
-    agent-id: agent-id,
-    new-uri: new-uri,
-    updated-by: contract-caller
+    payload: {
+      agent-id: agent-id,
+      new-uri: new-uri,
+      updated-by: contract-caller
+    }
   })
   (ok true)
 )
@@ -98,9 +102,11 @@
   (map-set metadata {agent-id: agent-id, key: key} value)
   (print {
     notification: "identity-registry/MetadataSet",
-    agent-id: agent-id,
-    key: key,
-    value-len: (len value)
+    payload: {
+      agent-id: agent-id,
+      key: key,
+      value-len: (len value)
+    }
   })
   (ok true)
 )
@@ -113,9 +119,11 @@
     (map-set approvals {agent-id: agent-id, operator: operator} approved)
     (print {
       notification: "identity-registry/ApprovalForAll",
-      agent-id: agent-id,
-      operator: operator,
-      approved: approved
+      payload: {
+        agent-id: agent-id,
+        operator: operator,
+        approved: approved
+      }
     })
     (ok true)
   )

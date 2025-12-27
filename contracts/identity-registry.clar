@@ -55,21 +55,7 @@
     (var-set next-agent-id updated-next)
     (asserts! (map-insert owners {agent-id: agent-id} owner) ERR_AGENT_ALREADY_EXISTS)
     (asserts! (map-insert uris {agent-id: agent-id} token-uri) ERR_AGENT_ALREADY_EXISTS)
-    (asserts! 
-      (fold 
-        (lambda (entry prior)
-          (let (
-            (mkey (get key entry))
-            (mval (get value entry))
-          )
-            (map-set metadata {agent-id: agent-id, key: mkey} mval)
-            prior
-          ))
-        metadata-entries 
-        true
-      ) 
-      ERR_METADATA_SET_FAILED
-    )
+    (asserts! (set-metadata-entries agent-id metadata-entries u0) ERR_METADATA_SET_FAILED)
     (print {
       notification: "identity-registry/Registered",
       payload: {
@@ -156,6 +142,28 @@
 ;;
 
 ;; private functions
+
+(define-private (set-metadata-entries
+  (agent-id uint)
+  (entries (list 10 {key: (string-utf8 128), value: (buff 512)}))
+  (idx uint)
+)
+  (if (>= idx (len entries))
+    true
+    (match (element-at? entries idx)
+      entry
+      (let (
+        (next-idx (+ idx u1))
+      )
+        (begin
+          (map-set metadata {agent-id: agent-id, key: (get key entry)} (get value entry))
+          (set-metadata-entries agent-id entries next-idx)
+        )
+      )
+      false
+    )
+  )
+)
 
 (define-private (is-authorized (agent-id uint) (caller principal))
   (let (

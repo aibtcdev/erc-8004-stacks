@@ -16,7 +16,7 @@
 (define-constant MAX_KEY_LEN u128)
 (define-constant MAX_VALUE_LEN u512)
 (define-constant MAX_METADATA_ENTRIES u10)
-(define-constant VERSION u"1.0.0")
+(define-constant VERSION (string-utf8 32 "1.0.0"))
 ;;
 
 ;; data vars
@@ -33,11 +33,11 @@
 ;; public functions
 
 (define-public (register)
-  (register-with-uri (string-utf8 ""))
+  (register-with-uri (string-utf8 512 ""))
 )
 
 (define-public (register-with-uri (token-uri (string-utf8 512)))
-  (register-full token-uri (list ))
+  (register-full token-uri (list 0 {key: (string-utf8 128), value: (buff 512)}))
 )
 
 (define-public (register-full 
@@ -51,8 +51,8 @@
   )
     ;; Atomic update
     (var-set next-agent-id updated-next)
-    (map-set owners {agent-id} owner)
-    (map-set uris {agent-id} token-uri)
+    (map-set owners {agent-id: agent-id} owner)
+    (map-set uris {agent-id: agent-id} token-uri)
     
     ;; Set metadata entries
     (fold 
@@ -71,9 +71,9 @@
     
     (print {
       notification: "identity-registry/Registered",
-      agent-id,
-      owner,
-      token-uri,
+      agent-id: agent-id,
+      owner: owner,
+      token-uri: token-uri,
       metadata-count: (len metadata-entries)
     })
     (ok agent-id)
@@ -82,11 +82,11 @@
 
 (define-public (set-agent-uri (agent-id uint) (new-uri (string-utf8 512)))
   (asserts! (is-authorized agent-id contract-caller) ERR_NOT_AUTHORIZED)
-  (map-set uris {agent-id} new-uri)
+  (map-set uris {agent-id: agent-id} new-uri)
   (print {
     notification: "identity-registry/UriUpdated",
-    agent-id,
-    new-uri,
+    agent-id: agent-id,
+    new-uri: new-uri,
     updated-by: contract-caller
   })
   (ok true)
@@ -94,11 +94,11 @@
 
 (define-public (set-metadata (agent-id uint) (key (string-utf8 128)) (value (buff 512)))
   (asserts! (is-authorized agent-id contract-caller) ERR_NOT_AUTHORIZED)
-  (map-set metadata {agent-id: agent-id, key} value)
+  (map-set metadata {agent-id: agent-id, key: key} value)
   (print {
     notification: "identity-registry/MetadataSet",
-    agent-id,
-    key,
+    agent-id: agent-id,
+    key: key,
     value-len: (len value)
   })
   (ok true)
@@ -106,15 +106,15 @@
 
 (define-public (set-approval-for-all (agent-id uint) (operator principal) (approved bool))
   (let (
-    (owner (unwrap! (map-get? owners {agent-id}) ERR_AGENT_NOT_FOUND))
+    (owner (unwrap! (map-get? owners {agent-id: agent-id}) ERR_AGENT_NOT_FOUND))
   )
     (asserts! (is-eq tx-sender owner) ERR_NOT_AUTHORIZED)
-    (map-set approvals {agent-id: agent-id, operator} approved)
+    (map-set approvals {agent-id: agent-id, operator: operator} approved)
     (print {
       notification: "identity-registry/ApprovalForAll",
-      agent-id,
-      operator,
-      approved
+      agent-id: agent-id,
+      operator: operator,
+      approved: approved
     })
     (ok true)
   )
@@ -124,11 +124,11 @@
 ;; read only functions
 
 (define-read-only (owner-of (agent-id uint))
-  (map-get? owners {agent-id})
+  (map-get? owners {agent-id: agent-id})
 )
 
 (define-read-only (get-uri (agent-id uint))
-  (map-get? uris {agent-id})
+  (map-get? uris {agent-id: agent-id})
 )
 
 (define-read-only (get-metadata (agent-id uint) (key (string-utf8 128)))
@@ -136,7 +136,7 @@
 )
 
 (define-read-only (is-approved-for-all (agent-id uint) (operator principal))
-  (default-to false (map-get? approvals {agent-id: agent-id, operator}))
+  (default-to false (map-get? approvals {agent-id: agent-id, operator: operator}))
 )
 
 (define-read-only (get-version)
@@ -148,7 +148,7 @@
 
 (define-private (is-authorized (agent-id uint) (caller principal))
   (let (
-    (owner-opt (map-get? owners {agent-id}))
+    (owner-opt (map-get? owners {agent-id: agent-id}))
   )
     (match owner-opt owner
       (or 

@@ -33,7 +33,7 @@
 ;; public functions
 
 (define-public (register)
-  (register-with-uri (string-utf8 512 u""))
+  (register-with-uri u"")
 )
 
 (define-public (register-with-uri (token-uri (string-utf8 512)))
@@ -51,6 +51,7 @@
   )
     ;; Atomic update
     (var-set next-agent-id updated-next)
+    ;; TODO: map-set or map-insert w/ asserts?
     (map-set owners {agent-id: agent-id} owner)
     (map-set uris {agent-id: agent-id} token-uri)
     

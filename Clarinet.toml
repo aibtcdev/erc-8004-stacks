@@ -7,6 +7,7 @@ cache_dir = './.cache'
 
 [[project.requirements]]
 contract_id = 'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard'
+
 [contracts.addon-attestation]
 path = 'contracts/addon-attestation.clar'
 clarity_version = 4
@@ -17,15 +18,13 @@ path = 'contracts/agent-account-example.clar'
 clarity_version = 4
 epoch = 'latest'
 
-[contracts.base-registry]
-path = 'contracts/base-registry.clar'
+[contracts.owner-agent-base-registry]
+path = 'contracts/owner-agent-base-registry.clar'
 clarity_version = 4
 epoch = 'latest'
+
 [repl.analysis]
-passes = [
-    'call_checker',
-    'check_checker',
-]
+passes = ['call_checker', 'check_checker']
 
 [repl.analysis.lints]
 

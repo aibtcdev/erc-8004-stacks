@@ -1,11 +1,9 @@
 ;; title: agent-account-example
-;; version:
-;; summary:
-;; description:
+;; version: 4.0.0
+;; summary: On-chain codified relationship between an owner and an agent.
 
 ;; traits
 ;;
-;; /g/'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard.sip-010-trait/base_trait_sip010
 (use-trait ft-trait 'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard.sip-010-trait)
 
 ;; token definitions
@@ -14,7 +12,8 @@
 ;; constants
 (define-constant DEPLOYED_BURN_BLOCK burn-block-height)
 (define-constant DEPLOYED_STACKS_BLOCK stacks-block-height)
-(define-constant SELF (unwrap-panic (as-contract? () tx-sender)))
+(define-constant DEPLOYED_STACKS_TIME stacks-block-time)
+(define-constant SELF current-contract)
 
 ;; owner and agent addresses
 (define-constant ACCOUNT_OWNER 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM) ;; owner (user/creator of account, full access)

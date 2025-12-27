@@ -56,19 +56,19 @@
     (asserts! (map-insert uris {agent-id: agent-id} token-uri) ERR_AGENT_ALREADY_EXISTS)
     
     ;; Set metadata entries
-    (fold 
-      ((entry prior)
-        (let (
-          (mkey (get key entry))
-          (mval (get value entry))
-        )
-          (map-set metadata {agent-id: agent-id, key: mkey} mval)
-          prior
-        )
-      )
-      metadata-entries
-      true
-    )
+    ;;(fold 
+    ;;  ((entry prior)
+    ;;    (let (
+    ;;      (mkey (get key entry))
+    ;;      (mval (get value entry))
+    ;;    )
+    ;;      (map-set metadata {agent-id: agent-id, key: mkey} mval)
+    ;;      prior
+    ;;    )
+    ;;  )
+    ;;  metadata-entries
+    ;;  true
+    ;;)
     
     (print {
       notification: "identity-registry/Registered",
@@ -84,21 +84,23 @@
 )
 
 (define-public (set-agent-uri (agent-id uint) (new-uri (string-utf8 512)))
-  (asserts! (is-authorized agent-id contract-caller) ERR_NOT_AUTHORIZED)
-  (map-set uris {agent-id: agent-id} new-uri)
-  (print {
-    notification: "identity-registry/UriUpdated",
-    payload: {
-      agent-id: agent-id,
-      new-uri: new-uri,
-      updated-by: contract-caller
-    }
-  })
-  (ok true)
+  (begin 
+    (asserts! (is-authorized agent-id contract-caller) ERR_NOT_AUTHORIZED)
+    (map-set uris {agent-id: agent-id} new-uri)
+    (print {
+      notification: "identity-registry/UriUpdated",
+      payload: {
+        agent-id: agent-id,
+        new-uri: new-uri,
+        updated-by: contract-caller
+      }
+    })
+    (ok true)
+  )
 )
 
 (define-public (set-metadata (agent-id uint) (key (string-utf8 128)) (value (buff 512)))
-  (asserts! (is-authorized agent-id contract-caller) ERR_NOT_AUTHORIZED)
+  (begin (asserts! (is-authorized agent-id contract-caller) ERR_NOT_AUTHORIZED)
   (map-set metadata {agent-id: agent-id, key: key} value)
   (print {
     notification: "identity-registry/MetadataSet",
@@ -108,7 +110,7 @@
       value-len: (len value)
     }
   })
-  (ok true)
+  (ok true))
 )
 
 (define-public (set-approval-for-all (agent-id uint) (operator principal) (approved bool))

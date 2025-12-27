@@ -16,7 +16,7 @@
 (define-constant MAX_KEY_LEN u128)
 (define-constant MAX_VALUE_LEN u512)
 (define-constant MAX_METADATA_ENTRIES u10)
-(define-constant VERSION (string-utf8 32 "1.0.0"))
+(define-constant VERSION u"1.0.0")
 ;;
 
 ;; data vars
@@ -33,11 +33,11 @@
 ;; public functions
 
 (define-public (register)
-  (register-with-uri (string-utf8 512 ""))
+  (register-with-uri (string-utf8 512 u""))
 )
 
 (define-public (register-with-uri (token-uri (string-utf8 512)))
-  (register-full token-uri (list 0 {key: (string-utf8 128), value: (buff 512)}))
+  (register-full token-uri (list))
 )
 
 (define-public (register-full 
@@ -132,7 +132,7 @@
 )
 
 (define-read-only (get-metadata (agent-id uint) (key (string-utf8 128)))
-  (map-get? metadata {agent-id: agent-id, key})
+  (map-get? metadata {agent-id: agent-id, key: key})
 )
 
 (define-read-only (is-approved-for-all (agent-id uint) (operator principal))

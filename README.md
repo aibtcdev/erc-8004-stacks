@@ -1,43 +1,77 @@
-# Stacks Owner-Agent Registry
+# ERC-8004 Stacks Contracts
 
-Minimal, modular contracts for owner-agent identity and interactions on Stacks. Inspired by ERC-8004 (Identity/Reputation/Validation Registries).
+Minimal, compilable **ERC-8004** (Agent Identity/Reputation/Validation) contracts for **Stacks** (Clarity).
 
-Core: One-to-one owner (bare principal) ↔ agent (contract) mappings with unique IDs.
+- **IdentityRegistry**: ERC-721-like agent registration (sequential IDs, URI, metadata).
+- **ReputationRegistry**: Client feedback (score/tags/revoke/response).
+- **ValidationRegistry**: Validator requests/responses.
 
-Extensible via addons for reputation, attestations, payments (sBTC/x402).
+**Status**: Identity ✅ (tested/deploy-ready). Reputation/Validation ⏳ (next).
+
+**Multichain**: `stacks:<chainId>:<registry>:<agentId>` (CAIP-2 compliant).
+
+Mirrors [erc8004-contracts](https://github.com/erc8004-org/erc8004-contracts) (Solidity).
 
 ## Contracts
 
-| Name                       | Path                                        | Summary                                 |
-| -------------------------- | ------------------------------------------- | --------------------------------------- |
-| Owner-Agent Registry       | `contracts/owner-agent-registry.clar`       | Core identity mappings (ERC-8004-like). |
-| Agent Account Example      | `contracts/agent-account-example.clar`      | Permissioned asset management demo.     |
-| Registry Addon Attestation | `contracts/registry-addon-attestation.clar` | Stub for reputation/validations.        |
+| Name                  | Path                              | Status | Summary                                      |
+|-----------------------|-----------------------------------|--------|----------------------------------------------|
+| Identity Registry     | `contracts/identity-registry.clar`| ✅ Done| Agent registration (ERC-721 equiv., metadata)|
+| Reputation Registry   | `contracts/reputation-registry.clar` | ⏳   | Feedback (score/tags/revoke/response)       |
+| Validation Registry   | `contracts/validation-registry.clar`  | ⏳   | Validator requests/responses                 |
 
-**Testnet Addresses** (Simnet/TBD):
+**Testnet Addresses** (Hiro Testnet, post-deploy):
 
-- Owner-Agent Registry: `ST000...` (deploy via Clarinet)
+| Contract              | Address                  |
+|-----------------------|--------------------------|
+| Identity Registry     | `ST...` (TBD)            |
+| Reputation Registry   | `ST...` (TBD)            |
+| Validation Registry   | `ST...` (TBD)            |
 
-## Contract Specifications
+## Contract Specifications & Plan
 
-- [Owner-Agent Registry](contracts/owner-agent-registry.md)
-- [Agent Account Example](contracts/agent-account-example.md)
-- [Registry Addon Attestation](contracts/registry-addon-attestation.md)
+- [Implementation Plan](docs/STACKS_ERC8004_IMPLEMENTATION.md)
+- [Clarity Reference](docs/CLARITY_REFERENCE.md)
+- [Solidity Refs](docs/erc8004-contracts-*.sol)
 
-### Usage
+## Quickstart
+
+### Install & Test
 
 ```bash
 npm install
-npm test  # Run Vitest/Clarinet tests
+npm test          # Vitest + Clarinet (identity-registry full coverage)
+clarinet test     # Clarinet-only
 ```
 
-**Tests**: `tests/owner-agent-registry.test.ts` (core coverage).
+### Local Dev (Clarinet)
 
-**Deploy**: Use Clarinet simnet; update `Clarinet.toml` for mainnet.
+```bash
+clarinet integrate # Dev shell
+clarinet deploy    # Simnet
+clarinet console   # REPL
+```
 
-## Key Resources
+### Deploy Hiro Testnet
 
-- [ERC-8004 Spec](https://eips.ethereum.org/EIPS/eip-8004)
-- [Stacks Docs](https://docs.stacks.co)
-- [Clarity Reference](https://docs.stacks.co/reference/functions)
-- [AIBTC](https://aibtc.com)
+1. `cp settings/Devnet.toml settings/Testnet.toml`
+2. Update `Testnet.toml` w/ deployer keys.
+3. `clarinet deploy --network testnet`
+4. Update addresses above.
+
+**Tests**:
+- `tests/identity-registry.test.ts` ✅
+- `tests/reputation-registry.test.ts` ⏳
+- `tests/validation-registry.test.ts` ⏳
+- `tests/erc8004-integration.test.ts` ⏳
+
+## Resources
+
+- **[ERC-8004 Spec](https://eips.ethereum.org/EIPS/eip-8004)**: Agent standards.
+- **[Clarity Manual](https://docs.stacks.co/clarity)**: Language.
+- **[Clarinet](https://docs.clarinet.dev)**: Dev tools.
+- **[Solidity Impl](https://github.com/erc8004-org/erc8004-contracts)**: Ethereum ref.
+- **[Solana Impl](docs/solana-s8004-contract.rs)**: Rust ref.
+- **[Plan](docs/STACKS_ERC8004_IMPLEMENTATION.md)**: Roadmap.
+
+**Next**: Reputation/Validation impl → full testnet deploy → multichain demo.

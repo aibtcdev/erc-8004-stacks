@@ -19,14 +19,14 @@
 
 ## High-Level Plan
 
-**Status**: `identity-registry.clar` ✅ Implemented & Tested.
+**Status**: All three contracts ✅ Implemented & Tested (59 tests passing).
 
-1. **Three Contracts** (modular, each refs `identity-registry` via traits/cross-calls):
+1. **Three Contracts** (modular, each refs `identity-registry` via cross-calls):
    | Contract | Status | Purpose | Key Maps/Functions |
    |----------|--------|---------|--------------------|
    | `identity-registry.clar` | ✅ Done | Agent registration (ERC-721 equiv.) | `owners: {agent-id: uint} → principal`, `uris: {agent-id: uint} → (string-utf8 512)`, `metadata: {agent-id: uint, key: (string-utf8 128)} → (buff 512)`, `approvals: {agent-id: uint, operator: principal} → bool`<br>`register() → uint`, `register-with-uri((string-utf8 512)) → uint`, `register-full((string-utf8 512), (list 10 {key: (string-utf8 128), value: (buff 512)})) → uint agentId`, `owner-of(uint) → (optional principal)`, `get-uri(uint) → (optional (string-utf8 512))`, `set-agent-uri(uint, (string-utf8 512)) → (response bool uint)`, `set-metadata(uint, (string-utf8 128), (buff 512)) → (response bool uint)`, `set-approval-for-all(uint, principal, bool) → (response bool uint)`, `is-approved-for-all(uint, principal) → bool`, `get-version() → (string-utf8 8)` |
-   | `reputation-registry.clar` | ⏳ Next | Feedback (score/tags/revoke/response) | `_feedback: {agent-id: uint, client: principal, index: uint} → {score: uint, tag1: (buff 32), tag2: (buff 32), is-revoked: bool}`, `_last-index: {agent-id: uint, client: principal} → uint`, `_clients: {agent-id: uint} → (list 1024 principal)`<br>`give-feedback(uint agentId, uint score, (buff 32) tag1, (buff 32) tag2, (string-utf8 512) feedback-uri, (buff 32) feedback-hash, (buff 65) auth) → (response bool uint)`, `revoke-feedback(uint agentId, uint index) → (response bool uint)`, `append-response(uint agentId, principal client, uint index, (string-utf8 512) response-uri, (buff 32) response-hash) → (response bool uint)`, `get-summary(uint agentId, (optional (list 200 principal)), (optional (buff 32)), (optional (buff 32))) → {count: uint, average-score: uint}`, `read-all-feedback(...) → ...` (paginated) |
-   | `validation-registry.clar` | ⏳ Next | Validator requests/responses | `_validations: (buff 32) → {validator: principal, agent-id: uint, response: uint, response-hash: (buff 32), tag: (buff 32), last-update: uint}`, `_agent-validations: {agent-id: uint} → (list 1024 (buff 32))`<br>`validation-request(principal validator, uint agentId, (string-utf8 512) request-uri, (buff 32) request-hash) → (response bool uint)` (owner/approved only), `validation-response((buff 32) request-hash, uint response, (string-utf8 512) response-uri, (buff 32) response-hash, (buff 32) tag) → (response bool uint)` (validator only), `get-summary(uint agentId, (optional (list 200 principal)), (optional (buff 32))) → {count: uint, avg-response: uint}` |
+   | `reputation-registry.clar` | ✅ Done | Feedback (score/tags/revoke/response) | Dual auth: SIP-018 signatures + on-chain approval. `feedback: {agent-id, client, index} → {score, tag1, tag2, is-revoked}`, `approved-clients: {agent-id, client} → index-limit`<br>`approve-client`, `give-feedback`, `give-feedback-signed`, `revoke-feedback`, `append-response`, `get-summary`, `read-feedback` |
+   | `validation-registry.clar` | ✅ Done | Validator requests/responses | `validations: (buff 32) → {validator, agent-id, response, response-hash, tag, last-update}`, `agent-validations: {agent-id} → (list 1024 (buff 32))`<br>`validation-request`, `validation-response`, `get-validation-status`, `get-summary`, `get-agent-validations`, `get-validator-requests` |
 
 2. **Deployment**:
 
@@ -38,56 +38,43 @@
 
 4. **Gas/Storage Learnings**: Fixed `string-utf8 512`/`buff 512`, `list 10` batch limits, `fold` for batch inserts (atomic), paginated reads (e.g., `list 10` per page), `uint` everywhere (no `u64`—Clarity `uint` is fine).
 
-## Next Steps (Prioritized, 1-2 Days Each)
+## Implementation Status
 
-**Completed**:
-- ✅ `identity-registry.clar` implemented (sequential IDs from 0, batch register-full w/ fold, approvals, metadata/URI updates, events via `print`, version).
-- ✅ `tests/identity-registry.test.ts` (full coverage: register variants, auth checks, reads).
+**All contracts complete with 59 tests passing.**
 
-**Remaining**:
+| Component | Status | Tests |
+|-----------|--------|-------|
+| `identity-registry.clar` | ✅ Done | 18 tests |
+| `validation-registry.clar` | ✅ Done | 18 tests |
+| `reputation-registry.clar` | ✅ Done | 23 tests |
 
-1. **Reputation Registry** (1-2 days):
-   - Implement `contracts/reputation-registry.clar` mirroring Solidity:
-     - Maps: `feedback {agent-id: uint, client: principal, index: uint} → {score: uint, tag1: (buff 32), tag2: (buff 32), is-revoked: bool}`, `last-index {agent-id: uint, client: principal} → uint`, `clients {agent-id: uint} → (list 1024 principal)`, response/response-count maps.
-     - `give-feedback(...)`: Cross-call `identity-registry owner-of`, ban self-feedback (owner/operator), verify auth (secp256k1-recover? on EIP-191 hash or func-call), store 1-indexed, emit `NewFeedback`.
-     - `revoke-feedback(agent-id, index)`: Client-only, mark revoked.
-     - `append-response(...)`: Anyone? Track responders/counts, emit.
-     - RO: `get-summary(agent-id, opt-clients (list 200), opt-tags) → {count: uint, average: uint}`, `read-feedback(...)`, `read-all-feedback(...)` (paginated), `get-clients(agent-id)`.
-   - Auth: `(buff 65) sig` → recover pubkey matches signer (owner/op via identity), params: `{agent-id, client, index-limit, expiry: uint, chain-id: uint, registry: principal, signer: principal}` hashed as keccak256(EIP-191).
-   - Tests: `tests/reputation-registry.test.ts` (auth sig/func, multi-feedback, revoke, summary filters, cross-call identity).
+### Completed Features
 
-2. **Validation Registry** (1 day):
-   - Implement `contracts/validation-registry.clar`:
-     - Maps: `validations (buff 32) → {validator: principal, agent-id: uint, response: uint, response-hash: (buff 32), tag: (buff 32), last-update: uint}`, `agent-validations {agent-id: uint} → (list 1024 (buff 32))`.
-     - `validation-request(validator: principal, agent-id: uint, uri: (string-utf8 512), hash: (buff 32))`: Owner/approved only (cross-call identity).
-     - `validation-response(hash: (buff 32), response: uint, uri, response-hash, tag)`: `msg.sender == validator`.
-     - RO: `get-summary(agent-id, opt-validators (list 200), opt-tag) → {count: uint, avg: uint}`, lists.
-   - Tests: `tests/validation-registry.test.ts`.
+**Identity Registry**:
+- Sequential IDs from 0, batch register-full w/ fold
+- Approvals, metadata/URI updates
+- Events via `print`, version support
 
-3. **Integration/Deploy** (1 day):
-   - Update `Clarinet.toml`: Add rep/valid contracts + traits? (for cross-calls).
-   - Integration tests: `tests/erc8004-integration.test.ts` (full flows: register → feedback/validation).
-   - Deploy Hiro Testnet (`clarinet deploy --network testnet`), update `README.md` w/ addresses/ABIs/JSON examples.
-   - Multichain ID example.
+**Validation Registry**:
+- Cross-contract auth via identity-registry
+- Request/response workflow with hash-based lookup
+- Summary aggregation with tag filtering
 
-4. **Polish/Repo** (0.5 day):
-   - Repo cleanup: Delete old contracts/docs.
-   - `README.md`: Mirror Solidity (install, test, deploy, testnet addrs).
-   - Events: Standardize `notification`/`payload`.
-   - PR to ERC-8004 org.
+**Reputation Registry**:
+- Dual authorization: SIP-018 signatures + on-chain approval
+- Self-feedback prevention (owner/operator cannot give feedback)
+- Index-based rate limiting via approval limits
+- Revocation, response tracking, summary aggregation
 
-**Risks/Mitigations** (Updated):
-- ✅ Loops: Fixed-size lists, pagination (e.g., `get-children` pattern).
-- Sig recovery: Use Clarity `secp256k1-recover?` w/ test vectors.
-- Cross-contract: Direct `contract-call?` (no traits needed for RO).
-- Costs: Batch ops via fold, RO summaries loop <200.
+## Next Steps
 
-**Live Goal**: Full ERC-8004 Stacks Testnet (3 contracts, tests, addrs) in 3-4 days.
+1. **Deploy Testnet**: `clarinet deploy --network testnet`
+2. **Update README**: Add deployed contract addresses
+3. **Multichain Demo**: Create example agent with cross-chain registration
+4. **PR to ERC-8004 org**: Submit Stacks implementation
 
 **Risks/Mitigations**:
-
-- Sig recovery: Test vectors from Solidity/Clarity docs.
-- Loops: Pagination + gas limits.
-- No upgrades: v2 new deploy.
-
-**Live Goal**: Stacks ERC-8004 testnet in 1 week, spec-compliant.
+- ✅ Loops: Fixed-size lists, pagination
+- ✅ Sig recovery: Clarity `secp256k1-recover?` with SIP-018
+- ✅ Cross-contract: Direct `contract-call?`
+- ✅ Costs: Batch ops via fold, RO summaries loop <200

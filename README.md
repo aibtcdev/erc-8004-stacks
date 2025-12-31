@@ -6,7 +6,7 @@ Minimal, compilable **ERC-8004** (Agent Identity/Reputation/Validation) contract
 - **ReputationRegistry**: Client feedback (score/tags/revoke/response).
 - **ValidationRegistry**: Validator requests/responses.
 
-**Status**: Identity ✅ (tested/deploy-ready). Reputation/Validation ⏳ (next).
+**Status**: All registries ✅ complete (tested/deploy-ready).
 
 **Multichain**: `stacks:<chainId>:<registry>:<agentId>` (CAIP-2 compliant).
 
@@ -17,8 +17,8 @@ Mirrors [erc8004-contracts](https://github.com/erc8004-org/erc8004-contracts) (S
 | Name                | Path                                 | Status  | Summary                                       |
 | ------------------- | ------------------------------------ | ------- | --------------------------------------------- |
 | Identity Registry   | `contracts/identity-registry.clar`   | ✅ Done | Agent registration (ERC-721 equiv., metadata) |
-| Reputation Registry | `contracts/reputation-registry.clar` | ⏳      | Feedback (score/tags/revoke/response)         |
-| Validation Registry | `contracts/validation-registry.clar` | ⏳      | Validator requests/responses                  |
+| Reputation Registry | `contracts/reputation-registry.clar` | ✅ Done | Feedback (score/tags/revoke/response), SIP-018 signatures |
+| Validation Registry | `contracts/validation-registry.clar` | ✅ Done | Validator requests/responses                  |
 
 **Testnet Addresses** (Hiro Testnet, post-deploy):
 
@@ -60,10 +60,9 @@ clarinet console   # REPL
 
 **Tests**:
 
-- `tests/identity-registry.test.ts` ✅
-- `tests/reputation-registry.test.ts` ⏳
-- `tests/validation-registry.test.ts` ⏳
-- `tests/erc8004-integration.test.ts` ⏳
+- `tests/identity-registry.test.ts` ✅ (18 tests)
+- `tests/reputation-registry.test.ts` ✅ (23 tests)
+- `tests/validation-registry.test.ts` ✅ (18 tests)
 
 ## Resources
 
@@ -74,4 +73,4 @@ clarinet console   # REPL
 - **[Solana Impl](docs/solana-s8004-contract.rs)**: Rust ref.
 - **[Plan](docs/STACKS_ERC8004_IMPLEMENTATION.md)**: Roadmap.
 
-**Next**: Reputation/Validation impl → full testnet deploy → multichain demo.
+**Next**: Testnet deploy → multichain demo.

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ERC-8004 Stacks Contracts - Clarity smart contracts implementing the ERC-8004 agent identity/reputation/validation protocol for Stacks blockchain. Mirrors the [Solidity reference implementation](https://github.com/erc8004-org/erc8004-contracts).
 
-**Current Status**: Identity Registry ✅ complete, Reputation/Validation Registries ⏳ in progress.
+**Current Status**: All three registries ✅ complete with 59 tests passing.
 
 ## Commands
 
@@ -43,8 +43,8 @@ Three contracts implementing ERC-8004 spec as chain singletons:
 | Contract | Purpose | Status |
 |----------|---------|--------|
 | `identity-registry.clar` | Agent registration (ERC-721 equivalent), URIs, metadata | ✅ Done |
-| `reputation-registry.clar` | Client feedback (score/tags/revoke/response) | ⏳ Stub |
-| `validation-registry.clar` | Validator requests/responses | ⏳ Stub |
+| `reputation-registry.clar` | Client feedback (score/tags/revoke/response), SIP-018 + on-chain auth | ✅ Done |
+| `validation-registry.clar` | Validator requests/responses | ✅ Done |
 
 **Multichain ID Format**: `stacks:<chainId>:<registry>:<agentId>` (CAIP-2 compliant)
 - Mainnet: `stacks:1`
@@ -52,7 +52,11 @@ Three contracts implementing ERC-8004 spec as chain singletons:
 
 ## Clarity Conventions
 
-**Error constants** use ranges per contract (identity: u1000+):
+**Error constants** use ranges per contract:
+- Identity Registry: u1000+
+- Validation Registry: u2000+
+- Reputation Registry: u3000+
+
 ```clarity
 (define-constant ERR_NOT_AUTHORIZED (err u1000))
 (define-constant ERR_AGENT_NOT_FOUND (err u1001))

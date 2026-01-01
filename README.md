@@ -6,7 +6,7 @@ Minimal, compilable **ERC-8004** (Agent Identity/Reputation/Validation) contract
 - **ReputationRegistry**: Client feedback (score/tags/revoke/response).
 - **ValidationRegistry**: Validator requests/responses.
 
-**Status**: All registries ✅ complete (tested/deploy-ready).
+**Status**: All registries ✅ complete and deployed to testnet.
 
 **Multichain**: `stacks:<chainId>:<registry>:<agentId>` (CAIP-2 compliant).
 
@@ -20,13 +20,13 @@ Mirrors [erc8004-contracts](https://github.com/erc8004-org/erc8004-contracts) (S
 | Reputation Registry | `contracts/reputation-registry.clar` | ✅ Done | Feedback (score/tags/revoke/response), SIP-018 signatures |
 | Validation Registry | `contracts/validation-registry.clar` | ✅ Done | Validator requests/responses                  |
 
-**Testnet Addresses** (Hiro Testnet, post-deploy):
+**Testnet Deployment** ([View on Explorer](https://explorer.hiro.so/address/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18?chain=testnet)):
 
-| Contract            | Address       |
-| ------------------- | ------------- |
-| Identity Registry   | `ST...` (TBD) |
-| Reputation Registry | `ST...` (TBD) |
-| Validation Registry | `ST...` (TBD) |
+| Contract            | Address                                                     | Explorer |
+| ------------------- | ----------------------------------------------------------- | -------- |
+| Identity Registry   | `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.identity-registry`   | [View](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.identity-registry?chain=testnet) |
+| Reputation Registry | `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry` | [View](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry?chain=testnet) |
+| Validation Registry | `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry` | [View](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry?chain=testnet) |
 
 ## Contract Specifications & Plan
 
@@ -74,4 +74,4 @@ clarinet console   # REPL
 - **[Solana Impl](docs/solana-s8004-contract.rs)**: Rust ref.
 - **[Plan](docs/STACKS_ERC8004_IMPLEMENTATION.md)**: Roadmap.
 
-**Next**: Testnet deploy → multichain demo.
+**Next**: Mainnet deploy → multichain demo.

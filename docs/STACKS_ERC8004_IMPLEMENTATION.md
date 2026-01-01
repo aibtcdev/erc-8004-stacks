@@ -67,12 +67,21 @@
 - Index-based rate limiting via approval limits
 - Revocation, response tracking, summary aggregation
 
+## Deployment Status
+
+**Testnet**: ✅ Deployed to `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18`
+
+| Contract | Testnet Address |
+|----------|-----------------|
+| Identity Registry | [`ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.identity-registry`](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.identity-registry?chain=testnet) |
+| Reputation Registry | [`ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry`](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry?chain=testnet) |
+| Validation Registry | [`ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry`](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry?chain=testnet) |
+
 ## Next Steps
 
-1. **Deploy Testnet**: `clarinet deploy --network testnet`
-2. **Update README**: Add deployed contract addresses
-3. **Multichain Demo**: Create example agent with cross-chain registration
-4. **PR to ERC-8004 org**: Submit Stacks implementation
+1. **Multichain Demo**: Create example agent with cross-chain registration
+2. **PR to ERC-8004 org**: Submit Stacks implementation
+3. **Mainnet Deploy**: Deploy to Stacks mainnet when ready
 
 **Risks/Mitigations**:
 - ✅ Loops: Fixed-size lists, pagination

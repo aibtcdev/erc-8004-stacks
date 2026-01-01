@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ERC-8004 Stacks Contracts - Clarity smart contracts implementing the ERC-8004 agent identity/reputation/validation protocol for Stacks blockchain. Mirrors the [Solidity reference implementation](https://github.com/erc8004-org/erc8004-contracts).
 
-**Current Status**: All three registries ✅ complete with 73 tests passing.
+**Current Status**: All three registries ✅ complete with 73 tests passing. Deployed to testnet.
 
 ## Commands
 

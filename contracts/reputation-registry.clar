@@ -317,6 +317,35 @@
   (default-to u0 (map-get? approved-clients {agent-id: agent-id, client: client}))
 )
 
+(define-read-only (read-all-feedback
+  (agent-id uint)
+  (opt-clients (optional (list 50 principal)))
+  (opt-tag1 (optional (buff 32)))
+  (opt-tag2 (optional (buff 32)))
+  (include-revoked bool)
+)
+  (let (
+    (client-list (default-to (default-to (list) (map-get? clients {agent-id: agent-id})) opt-clients))
+  )
+    (get items (fold read-all-client-fold
+      client-list
+      {
+        agent-id: agent-id,
+        tag1: opt-tag1,
+        tag2: opt-tag2,
+        include-revoked: include-revoked,
+        client: tx-sender,
+        last-idx: u0,
+        items: (list)
+      }
+    ))
+  )
+)
+
+(define-read-only (get-responders (agent-id uint) (client principal) (index uint))
+  (map-get? responders {agent-id: agent-id, client: client, index: index})
+)
+
 (define-read-only (get-identity-registry)
   .identity-registry
 )
@@ -399,6 +428,77 @@
     }))))
   )
     (sha256 (concat SIP018_PREFIX (concat domain-hash structured-data-hash)))
+  )
+)
+
+(define-private (read-all-client-fold
+  (client principal)
+  (acc {
+    agent-id: uint,
+    tag1: (optional (buff 32)),
+    tag2: (optional (buff 32)),
+    include-revoked: bool,
+    client: principal,
+    last-idx: uint,
+    items: (list 50 {client: principal, index: uint, score: uint, tag1: (buff 32), tag2: (buff 32), is-revoked: bool})
+  })
+)
+  (let (
+    (agent-id (get agent-id acc))
+    (last-idx (default-to u0 (map-get? last-index {agent-id: agent-id, client: client})))
+  )
+    (fold read-all-index-fold
+      (list u1 u2 u3 u4 u5 u6 u7 u8 u9 u10)
+      (merge acc {client: client, last-idx: last-idx})
+    )
+  )
+)
+
+(define-private (read-all-index-fold
+  (idx uint)
+  (acc {
+    agent-id: uint,
+    tag1: (optional (buff 32)),
+    tag2: (optional (buff 32)),
+    include-revoked: bool,
+    client: principal,
+    last-idx: uint,
+    items: (list 50 {client: principal, index: uint, score: uint, tag1: (buff 32), tag2: (buff 32), is-revoked: bool})
+  })
+)
+  (if (or (> idx (get last-idx acc)) (>= (len (get items acc)) u50))
+    acc
+    (let (
+      (fb-opt (map-get? feedback {agent-id: (get agent-id acc), client: (get client acc), index: idx}))
+    )
+      (match fb-opt fb
+        (let (
+          (dominated-by-revoked (and (get is-revoked fb) (not (get include-revoked acc))))
+          (matches-tag1 (match (get tag1 acc) filter-tag1
+            (is-eq filter-tag1 (get tag1 fb))
+            true))
+          (matches-tag2 (match (get tag2 acc) filter-tag2
+            (is-eq filter-tag2 (get tag2 fb))
+            true))
+        )
+          (if (and (not dominated-by-revoked) matches-tag1 matches-tag2)
+            (match (as-max-len? (append (get items acc) {
+              client: (get client acc),
+              index: idx,
+              score: (get score fb),
+              tag1: (get tag1 fb),
+              tag2: (get tag2 fb),
+              is-revoked: (get is-revoked fb)
+            }) u50)
+              new-items (merge acc {items: new-items})
+              acc
+            )
+            acc
+          )
+        )
+        acc
+      )
+    )
   )
 )
 

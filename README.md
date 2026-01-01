@@ -30,6 +30,7 @@ Mirrors [erc8004-contracts](https://github.com/erc8004-org/erc8004-contracts) (S
 
 ## Contract Specifications & Plan
 
+- [SPEC.md](SPEC.md) — One-pager overview of ERC-8004 on Stacks
 - [Implementation Plan](docs/STACKS_ERC8004_IMPLEMENTATION.md)
 - [Clarity Reference](docs/CLARITY_REFERENCE.md)
 - [Solidity Refs](docs/erc8004-contracts-*)
@@ -74,4 +75,4 @@ clarinet console   # REPL
 - **[Solana Impl](docs/solana-s8004-contract.rs)**: Rust ref.
 - **[Plan](docs/STACKS_ERC8004_IMPLEMENTATION.md)**: Roadmap.
 
-**Next**: Mainnet deploy → multichain demo.
+**Next**: SIP submission → mainnet deploy.

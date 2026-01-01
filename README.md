@@ -63,6 +63,7 @@ clarinet console   # REPL
 - `tests/identity-registry.test.ts` ✅ (18 tests)
 - `tests/reputation-registry.test.ts` ✅ (23 tests)
 - `tests/validation-registry.test.ts` ✅ (18 tests)
+- `tests/erc8004-integration.test.ts` ✅ (14 tests)
 
 ## Resources
 

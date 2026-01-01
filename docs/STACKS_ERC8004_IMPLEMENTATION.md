@@ -40,13 +40,14 @@
 
 ## Implementation Status
 
-**All contracts complete with 59 tests passing.**
+**All contracts complete with 73 tests passing.**
 
 | Component | Status | Tests |
 |-----------|--------|-------|
 | `identity-registry.clar` | ✅ Done | 18 tests |
 | `validation-registry.clar` | ✅ Done | 18 tests |
 | `reputation-registry.clar` | ✅ Done | 23 tests |
+| Integration tests | ✅ Done | 14 tests |
 
 ### Completed Features
 

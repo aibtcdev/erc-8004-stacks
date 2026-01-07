@@ -13,3 +13,14 @@ node_modules
 deployments
 
 .aider*
+
+# Ralph docs state (local only)
+ralph-docs.json
+
+# Jekyll
+docs/_site
+docs/.sass-cache
+docs/.jekyll-cache
+docs/.jekyll-metadata
+docs/Gemfile.lock
+docs/vendor

@@ -1,0 +1,30 @@
+title: ERC-8004 Stacks Contracts
+description: Agent Identity, Reputation, and Validation Protocol for Stacks
+theme: just-the-docs
+
+url: https://aibtc.github.io
+baseurl: /erc8004-registry-stacks
+
+aux_links:
+  "View on GitHub": https://github.com/aibtc/erc8004-registry-stacks
+
+color_scheme: dark
+
+enable_copy_code_button: true
+search_enabled: true
+search:
+  heading_level: 2
+  previews: 3
+
+back_to_top: true
+
+callouts:
+  note:
+    title: Note
+    color: purple
+  warning:
+    title: Warning
+    color: red
+  important:
+    title: Important
+    color: blue

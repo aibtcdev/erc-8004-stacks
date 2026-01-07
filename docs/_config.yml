@@ -5,11 +5,11 @@ remote_theme: just-the-docs/just-the-docs
 plugins:
   - jekyll-remote-theme
 
-url: https://aibtc.github.io
-baseurl: /erc8004-registry-stacks
+url: https://aibtcdev.github.io
+baseurl: /erc-8004-stacks
 
 aux_links:
-  "View on GitHub": https://github.com/aibtc/erc8004-registry-stacks
+  "View on GitHub": https://github.com/aibtcdev/erc-8004-stacks
 
 color_scheme: dark
 

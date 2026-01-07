@@ -104,6 +104,7 @@ expect(result).toBeSome(Cl.principal(address1));
 
 ## Reference Documentation
 
+- **GitHub Pages**: https://aibtcdev.github.io/erc-8004-stacks/
 - Implementation plan: `docs/STACKS_ERC8004_IMPLEMENTATION.md`
 - Clarity language reference: `docs/CLARITY_REFERENCE.md`
 - Solidity reference: `docs/erc8004-contracts-*.md`

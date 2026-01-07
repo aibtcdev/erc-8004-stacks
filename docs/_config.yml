@@ -1,6 +1,9 @@
 title: ERC-8004 Stacks Contracts
 description: Agent Identity, Reputation, and Validation Protocol for Stacks
-theme: just-the-docs
+remote_theme: just-the-docs/just-the-docs
+
+plugins:
+  - jekyll-remote-theme
 
 url: https://aibtc.github.io
 baseurl: /erc8004-registry-stacks

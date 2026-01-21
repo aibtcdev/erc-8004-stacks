@@ -23,6 +23,11 @@ path = 'contracts/validation-registry.clar'
 clarity_version = 4
 epoch = 'latest'
 
+[contracts.bitcoin-agents]
+path = 'contracts/bitcoin-agents.clar'
+clarity_version = 4
+epoch = 'latest'
+
 [repl.analysis]
 passes = ['call_checker', 'check_checker']
 

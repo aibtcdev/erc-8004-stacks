@@ -18,6 +18,9 @@
 (define-constant ERR_EPITAPH_ALREADY_SET (err u4006))
 (define-constant ERR_NAME_TOO_LONG (err u4007))
 (define-constant ERR_MINT_FAILED (err u4008))
+(define-constant ERR_NAME_TOO_SHORT (err u4009))
+(define-constant ERR_XP_OVERFLOW (err u4010))
+(define-constant ERR_EPITAPH_TOO_SHORT (err u4011))
 
 ;; Contract references
 (define-constant SBTC_CONTRACT 'SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9.token-sbtc)
@@ -55,6 +58,7 @@
 (define-constant XP_SENIOR u2000)
 (define-constant XP_ELDER u10000)
 (define-constant XP_LEGENDARY u50000)
+(define-constant MAX_XP u1000000)            ;; 1M XP cap to prevent overflow
 
 ;; Food tiers
 (define-constant FOOD_TIER_BASIC u1)
@@ -114,7 +118,8 @@
     (agent-id (var-get next-agent-id))
     (owner tx-sender)
   )
-    ;; Validate name length
+    ;; Validate name length (1-64 characters)
+    (asserts! (>= (len name) u1) ERR_NAME_TOO_SHORT)
     (asserts! (<= (len name) u64) ERR_NAME_TOO_LONG)
 
     ;; Transfer sBTC payment
@@ -178,7 +183,11 @@
       (food-data (try! (get-food-data food-tier)))
       (cost (get cost food-data))
       (xp-reward (get xp food-data))
+      (new-xp (+ (get xp agent) xp-reward))
     )
+      ;; Check XP overflow
+      (asserts! (<= new-xp MAX_XP) ERR_XP_OVERFLOW)
+
       ;; Transfer sBTC payment
       ;; Note: In production, uncomment this:
       ;; (try! (contract-call? SBTC_CONTRACT transfer cost tx-sender (as-contract tx-sender) none))
@@ -187,7 +196,7 @@
       (map-set agents agent-id (merge agent {
         hunger: MAX_HUNGER,
         health: (get health current-state),  ;; Preserve current computed health
-        xp: (+ (get xp agent) xp-reward),
+        xp: new-xp,
         last-fed: stacks-block-height,
         total-fed-count: (+ (get total-fed-count agent) u1)
       }))
@@ -198,7 +207,7 @@
       ;; Check for level up
       (let (
         (old-level (get-level-from-xp (get xp agent)))
-        (new-level (get-level-from-xp (+ (get xp agent) xp-reward)))
+        (new-level (get-level-from-xp new-xp))
       )
         (if (> new-level old-level)
           (begin
@@ -208,7 +217,7 @@
                 agent-id: agent-id,
                 old-level: old-level,
                 new-level: new-level,
-                total-xp: (+ (get xp agent) xp-reward)
+                total-xp: new-xp
               }
             })
             true
@@ -237,6 +246,7 @@
 (define-public (add-xp (agent-id uint) (amount uint))
   (let (
     (agent (unwrap! (map-get? agents agent-id) ERR_AGENT_NOT_FOUND))
+    (new-xp (+ (get xp agent) amount))
   )
     ;; Must be alive
     (asserts! (get alive agent) ERR_AGENT_ALREADY_DEAD)
@@ -244,15 +254,18 @@
     ;; Only owner can add XP (or could be extended for authorized callers)
     (asserts! (is-eq tx-sender (get owner agent)) ERR_NOT_AUTHORIZED)
 
+    ;; Check XP overflow
+    (asserts! (<= new-xp MAX_XP) ERR_XP_OVERFLOW)
+
     ;; Update XP
     (map-set agents agent-id (merge agent {
-      xp: (+ (get xp agent) amount)
+      xp: new-xp
     }))
 
     ;; Check for level up
     (let (
       (old-level (get-level-from-xp (get xp agent)))
-      (new-level (get-level-from-xp (+ (get xp agent) amount)))
+      (new-level (get-level-from-xp new-xp))
     )
       (if (> new-level old-level)
         (begin
@@ -262,7 +275,7 @@
               agent-id: agent-id,
               old-level: old-level,
               new-level: new-level,
-              total-xp: (+ (get xp agent) amount)
+              total-xp: new-xp
             }
           })
           true
@@ -340,6 +353,9 @@
   )
     ;; Must be owner
     (asserts! (is-eq tx-sender (get owner agent)) ERR_NOT_AUTHORIZED)
+
+    ;; Epitaph must have content (at least 1 character)
+    (asserts! (>= (len epitaph) u1) ERR_EPITAPH_TOO_SHORT)
 
     ;; Epitaph not already set
     (asserts! (is-eq (get epitaph cert) u"") ERR_EPITAPH_ALREADY_SET)

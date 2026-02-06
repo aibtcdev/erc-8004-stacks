@@ -17,7 +17,6 @@ const address1 = accounts.get("wallet_1")!; // Agent owner
 const address2 = accounts.get("wallet_2")!; // Client
 const address3 = accounts.get("wallet_3")!; // Another client / responder
 const address4 = accounts.get("wallet_4")!; // Additional client for multi-client tests
-const address5 = accounts.get("wallet_5")!; // Additional client for multi-client tests
 
 // Helper to create a 32-byte buffer from a string
 function hashFromString(s: string): Uint8Array {

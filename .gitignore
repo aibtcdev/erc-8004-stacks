@@ -25,5 +25,8 @@ docs/.jekyll-metadata
 docs/Gemfile.lock
 docs/vendor
 
+# Backup files
+*.backup
+
 # Quest planning
 .planning/

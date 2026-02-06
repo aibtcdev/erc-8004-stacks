@@ -2,6 +2,7 @@
 ;; version: 2.0.0
 ;; summary: ERC-8004 Validation Registry - Manages validation requests and responses for agents.
 ;; description: Allows agent owners to request validation from validators, who respond with scores.
+;; auth: All authorization checks use tx-sender. Contract principals acting as validators must use as-contract.
 
 ;; traits
 ;;

@@ -2,6 +2,7 @@
 ;; version: 2.0.0
 ;; summary: ERC-8004 Identity Registry - Registers agent identities with sequential IDs, URIs, and metadata.
 ;; description: Compliant with ERC-8004 spec. Owner or approved operators can update URI/metadata. Single deployment per chain.
+;; auth: All authorization checks use tx-sender. Contract principals acting as owners/operators must use as-contract.
 
 ;; traits
 (define-trait nft-trait
@@ -159,9 +160,10 @@
 
 (define-public (set-agent-wallet-direct (agent-id uint))
   (let (
-    (owner (unwrap! (nft-get-owner? agent-identity agent-id) ERR_AGENT_NOT_FOUND))
     (current-wallet-opt (map-get? agent-wallets {agent-id: agent-id}))
   )
+    ;; Verify agent exists
+    (unwrap! (nft-get-owner? agent-identity agent-id) ERR_AGENT_NOT_FOUND)
     ;; Check caller is authorized (owner or approved operator)
     (asserts! (is-authorized agent-id tx-sender) ERR_NOT_AUTHORIZED)
     ;; Check caller is not already the wallet

@@ -2,6 +2,7 @@
 ;; version: 2.0.0
 ;; summary: ERC-8004 Reputation Registry - Client feedback for agents with SIP-018 and on-chain authorization.
 ;; description: Allows clients to give feedback on agents. Supports both on-chain approval and SIP-018 signed authorization.
+;; auth: All authorization checks use tx-sender. Contract principals acting as owners/operators must use as-contract.
 
 ;; traits
 ;;
@@ -24,6 +25,17 @@
 (define-constant ERR_INVALID_DECIMALS (err u3011))
 (define-constant ERR_EMPTY_CLIENT_LIST (err u3012))
 (define-constant VERSION u"2.0.0")
+
+;; Maximum feedback entries per client to iterate in read-only folds.
+;; Clarity requires static list iteration; this caps per-client feedback
+;; processing in get-summary, read-all-feedback, and get-response-count.
+(define-constant FEEDBACK_INDEX_LIST (list
+  u1 u2 u3 u4 u5 u6 u7 u8 u9 u10
+  u11 u12 u13 u14 u15 u16 u17 u18 u19 u20
+  u21 u22 u23 u24 u25 u26 u27 u28 u29 u30
+  u31 u32 u33 u34 u35 u36 u37 u38 u39 u40
+  u41 u42 u43 u44 u45 u46 u47 u48 u49 u50
+))
 
 ;; SIP-018 constants
 (define-constant SIP018_PREFIX 0x534950303138)
@@ -437,7 +449,7 @@
             (if (or (is-eq idx-val u0) (> idx-val last-idx))
               ;; Index 0 or invalid: count all feedback for this client
               (get total (fold count-all-feedback-fold
-                (list u1 u2 u3 u4 u5 u6 u7 u8 u9 u10)
+                FEEDBACK_INDEX_LIST
                 {agent-id: agent-id, client: client-val, last-idx: last-idx, responders: opt-responders, total: u0, current-idx: u0}))
               ;; Specific index: count for that feedback
               (match opt-responders
@@ -449,7 +461,7 @@
             )
           ;; No index: count all feedback for this client
           (get total (fold count-all-feedback-fold
-            (list u1 u2 u3 u4 u5 u6 u7 u8 u9 u10)
+            FEEDBACK_INDEX_LIST
             {agent-id: agent-id, client: client-val, last-idx: last-idx, responders: opt-responders, total: u0, current-idx: u0}))
         )
       )
@@ -650,7 +662,7 @@
     (last-idx (default-to u0 (map-get? last-index {agent-id: agent-id, client: client})))
   )
     (fold read-all-index-fold
-      (list u1 u2 u3 u4 u5 u6 u7 u8 u9 u10)
+      FEEDBACK_INDEX_LIST
       (merge acc {client: client, last-idx: last-idx})
     )
   )
@@ -714,7 +726,7 @@
     (last-idx (default-to u0 (map-get? last-index {agent-id: agent-id, client: client})))
   )
     (fold summary-index-fold
-      (list u1 u2 u3 u4 u5 u6 u7 u8 u9 u10)
+      FEEDBACK_INDEX_LIST
       (merge acc {client: client, last-idx: last-idx})
     )
   )
@@ -783,7 +795,7 @@
           ;; Index 0 or invalid: count all feedback for this client
           (merge acc {total: (+ (get total acc)
             (get total (fold count-all-feedback-fold
-              (list u1 u2 u3 u4 u5 u6 u7 u8 u9 u10)
+              FEEDBACK_INDEX_LIST
               {agent-id: agent-id, client: client, last-idx: last-idx, responders: (get opt-responders acc), total: u0, current-idx: u0})))})
           ;; Specific index: count for that feedback
           (merge acc {total: (+ (get total acc)
@@ -797,7 +809,7 @@
       ;; No index: count all feedback for this client
       (merge acc {total: (+ (get total acc)
         (get total (fold count-all-feedback-fold
-          (list u1 u2 u3 u4 u5 u6 u7 u8 u9 u10)
+          FEEDBACK_INDEX_LIST
           {agent-id: agent-id, client: client, last-idx: last-idx, responders: (get opt-responders acc), total: u0, current-idx: u0})))})
     )
   )

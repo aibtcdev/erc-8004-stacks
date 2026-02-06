@@ -4,9 +4,18 @@
 ;; description: Compliant with ERC-8004 spec. Owner or approved operators can update URI/metadata. Single deployment per chain.
 
 ;; traits
+(define-trait nft-trait
+  (
+    (get-last-token-id () (response uint uint))
+    (get-token-uri (uint) (response (optional (string-ascii 256)) uint))
+    (get-owner (uint) (response (optional principal) uint))
+    (transfer (uint principal principal) (response bool uint))
+  )
+)
 ;;
 
 ;; token definitions
+(define-non-fungible-token agent-identity uint)
 ;;
 
 ;; constants
@@ -14,6 +23,7 @@
 (define-constant ERR_AGENT_NOT_FOUND (err u1001))
 (define-constant ERR_AGENT_ALREADY_EXISTS (err u1002))
 (define-constant ERR_METADATA_SET_FAILED (err u1003))
+(define-constant ERR_INVALID_SENDER (err u1005))
 (define-constant MAX_URI_LEN u512)
 (define-constant MAX_KEY_LEN u128)
 (define-constant MAX_VALUE_LEN u512)

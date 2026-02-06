@@ -30,7 +30,7 @@
     agent-id: uint,
     response: uint,
     response-hash: (buff 32),
-    tag: (buff 32),
+    tag: (string-utf8 64),
     last-update: uint
   }
 )
@@ -64,7 +64,7 @@
         agent-id: agent-id,
         response: u0,
         response-hash: 0x0000000000000000000000000000000000000000000000000000000000000000,
-        tag: 0x0000000000000000000000000000000000000000000000000000000000000000,
+        tag: u"",
         last-update: stacks-block-height
       }
     )
@@ -101,7 +101,7 @@
   (response uint)
   (response-uri (string-utf8 512))
   (response-hash (buff 32))
-  (tag (buff 32))
+  (tag (string-utf8 64))
 )
   (let (
     (validation (unwrap! (map-get? validations {request-hash: request-hash}) ERR_VALIDATION_NOT_FOUND))
@@ -148,7 +148,7 @@
 (define-read-only (get-summary
   (agent-id uint)
   (opt-validators (optional (list 200 principal)))
-  (opt-tag (optional (buff 32)))
+  (opt-tag (optional (string-utf8 64)))
 )
   (let (
     (hashes (default-to (list) (map-get? agent-validations {agent-id: agent-id})))
@@ -199,7 +199,7 @@
 
 (define-private (summary-fold
   (request-hash (buff 32))
-  (acc {validators: (optional (list 200 principal)), tag: (optional (buff 32)), count: uint, total: uint})
+  (acc {validators: (optional (list 200 principal)), tag: (optional (string-utf8 64)), count: uint, total: uint})
 )
   (let (
     (validation-opt (map-get? validations {request-hash: request-hash}))

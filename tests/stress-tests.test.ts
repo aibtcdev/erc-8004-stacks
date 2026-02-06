@@ -334,11 +334,11 @@ describe("Reputation Registry - Stress Tests", () => {
       // arrange
       const agentId = registerAgent(wallet1);
 
-      // Create 10 feedbacks from different clients (cycling through wallets)
-      for (let i = 0; i < 10; i++) {
-        const client = allWallets[i % allWallets.length];
-        giveFeedback(agentId, client, BigInt(100 * (i + 1)), 0n, i + 1);
-      }
+      // Create 10 feedbacks - each wallet except wallet1 gives feedback, some give twice
+      const clients = [wallet2, wallet3, wallet4, wallet5, wallet6, wallet7, wallet8, wallet2, wallet3, wallet4];
+      clients.forEach((client, idx) => {
+        giveFeedback(agentId, client, BigInt(100 * (idx + 1)), 0n, idx + 1);
+      });
 
       // act
       const result = simnet.callReadOnlyFn(
@@ -365,8 +365,10 @@ describe("Reputation Registry - Stress Tests", () => {
       const agentId = registerAgent(wallet1);
 
       // Create 45 feedbacks (will span 3 pages with PAGE_SIZE=15)
+      // Use wallets 2-8 (skip wallet1 as it's the agent owner)
+      const validClients = allWallets.filter(w => w !== wallet1);
       for (let i = 0; i < 45; i++) {
-        const client = allWallets[i % allWallets.length];
+        const client = validClients[i % validClients.length];
         giveFeedback(agentId, client, BigInt(100 * (i + 1)), 0n, i + 1);
       }
 
@@ -376,11 +378,10 @@ describe("Reputation Registry - Stress Tests", () => {
         "read-all-feedback",
         [
           uintCV(agentId),
-          noneCV(),
-          noneCV(),
-          noneCV(),
-          Cl.bool(false),
-          noneCV(),
+          noneCV(), // opt-tag1
+          noneCV(), // opt-tag2
+          Cl.bool(false), // include-revoked
+          noneCV(), // opt-cursor
         ],
         deployer
       );
@@ -397,11 +398,10 @@ describe("Reputation Registry - Stress Tests", () => {
         "read-all-feedback",
         [
           uintCV(agentId),
-          noneCV(),
-          noneCV(),
-          noneCV(),
-          Cl.bool(false),
-          someCV(uintCV(15n)),
+          noneCV(), // opt-tag1
+          noneCV(), // opt-tag2
+          Cl.bool(false), // include-revoked
+          someCV(uintCV(15n)), // opt-cursor
         ],
         deployer
       );
@@ -418,11 +418,10 @@ describe("Reputation Registry - Stress Tests", () => {
         "read-all-feedback",
         [
           uintCV(agentId),
-          noneCV(),
-          noneCV(),
-          noneCV(),
-          Cl.bool(false),
-          someCV(uintCV(30n)),
+          noneCV(), // opt-tag1
+          noneCV(), // opt-tag2
+          Cl.bool(false), // include-revoked
+          someCV(uintCV(30n)), // opt-cursor
         ],
         deployer
       );
@@ -438,8 +437,10 @@ describe("Reputation Registry - Stress Tests", () => {
       const agentId = registerAgent(wallet1);
 
       // Create 90 feedbacks (will span 6 pages with PAGE_SIZE=15)
+      // Use wallets 2-8 (skip wallet1 as it's the agent owner)
+      const validClients = allWallets.filter(w => w !== wallet1);
       for (let i = 0; i < 90; i++) {
-        const client = allWallets[i % allWallets.length];
+        const client = validClients[i % validClients.length];
         giveFeedback(agentId, client, BigInt(100 * (i + 1)), 0n, i + 1);
       }
 
@@ -454,17 +455,16 @@ describe("Reputation Registry - Stress Tests", () => {
           "read-all-feedback",
           [
             uintCV(agentId),
-            noneCV(),
-            noneCV(),
-            noneCV(),
-            Cl.bool(false),
-            cursor,
+            noneCV(), // opt-tag1
+            noneCV(), // opt-tag2
+            Cl.bool(false), // include-revoked
+            cursor, // opt-cursor
           ],
           deployer
         );
 
         const data = result.result as any;
-        const items = data.value.items;
+        const items = data.value.items.value;
         totalItems += items.length;
         pageCount++;
 
@@ -519,12 +519,13 @@ describe("Reputation Registry - Stress Tests", () => {
       expect(data.value.cursor.type).toBe("none");
     });
 
-    it("handles mid scale (9 clients x 5 feedbacks)", () => {
+    it("handles mid scale (7 clients x 5 feedbacks)", () => {
       // arrange
       const agentId = registerAgent(wallet1);
 
-      // All 8 wallets give 5 feedbacks each
-      allWallets.forEach((client, clientIdx) => {
+      // 7 wallets (excluding wallet1 as agent owner) give 5 feedbacks each
+      const validClients = allWallets.filter(w => w !== wallet1);
+      validClients.forEach((client, clientIdx) => {
         for (let i = 0; i < 5; i++) {
           giveFeedback(
             agentId,
@@ -542,7 +543,7 @@ describe("Reputation Registry - Stress Tests", () => {
         "get-summary",
         [
           uintCV(agentId),
-          listCV(allWallets.map((w) => principalCV(w))),
+          listCV(validClients.map((w) => principalCV(w))),
           noneCV(),
           noneCV(),
           noneCV(),
@@ -552,15 +553,16 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // assert
       const data = result.result as any;
-      expect(data.value.count.value).toBe(40n); // 8 wallets * 5 feedbacks each
+      expect(data.value.count.value).toBe(35n); // 7 wallets * 5 feedbacks each
     });
 
-    it("handles high scale (9 clients x 10 feedbacks)", () => {
+    it("handles high scale (7 clients x 10 feedbacks)", () => {
       // arrange
       const agentId = registerAgent(wallet1);
 
-      // All 8 wallets give 10 feedbacks each
-      allWallets.forEach((client, clientIdx) => {
+      // 7 wallets (excluding wallet1 as agent owner) give 10 feedbacks each
+      const validClients = allWallets.filter(w => w !== wallet1);
+      validClients.forEach((client, clientIdx) => {
         for (let i = 0; i < 10; i++) {
           giveFeedback(
             agentId,
@@ -578,7 +580,7 @@ describe("Reputation Registry - Stress Tests", () => {
         "get-summary",
         [
           uintCV(agentId),
-          listCV(allWallets.map((w) => principalCV(w))),
+          listCV(validClients.map((w) => principalCV(w))),
           noneCV(),
           noneCV(),
           noneCV(),
@@ -588,7 +590,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // assert
       const data = result.result as any;
-      expect(data.value.count.value).toBe(80n); // 8 wallets * 10 feedbacks each
+      expect(data.value.count.value).toBe(70n); // 7 wallets * 10 feedbacks each
     });
   });
 });
@@ -622,11 +624,13 @@ describe("Validation Registry - Stress Tests", () => {
       // arrange
       const agentId = registerAgent(wallet1);
 
-      // Create 9 validation requests
-      for (let i = 0; i < 9; i++) {
-        const validator = allWallets[i % allWallets.length];
+      // Create 9 validation requests (wallet1 cannot validate itself, so skip it)
+      const validValidators = allWallets.filter(w => w !== wallet1);
+      // Need 9 requests, but only have 7 valid validators - some will validate twice
+      const validators = [...validValidators, validValidators[0], validValidators[1]];
+      validators.forEach((validator, i) => {
         createValidationRequest(agentId, wallet1, validator, i + 1);
-      }
+      });
 
       // act
       const result = simnet.callReadOnlyFn(
@@ -646,9 +650,10 @@ describe("Validation Registry - Stress Tests", () => {
       // arrange
       const agentId = registerAgent(wallet1);
 
-      // Create 27 validation requests
+      // Create 27 validation requests (wallet1 cannot validate itself, so skip it)
+      const validValidators = allWallets.filter(w => w !== wallet1);
       for (let i = 0; i < 27; i++) {
-        const validator = allWallets[i % allWallets.length];
+        const validator = validValidators[i % validValidators.length];
         createValidationRequest(agentId, wallet1, validator, i + 1);
       }
 
@@ -802,15 +807,16 @@ describe("Validation Registry - Stress Tests", () => {
       // arrange
       const agentId = registerAgent(wallet1);
 
-      // Create 9 validation requests
+      // Create 9 validation requests (wallet1 cannot validate itself, so skip it)
+      const validValidators = allWallets.filter(w => w !== wallet1);
+      const validators = [...validValidators, validValidators[0], validValidators[1]];
       const hashes: Uint8Array[] = [];
-      for (let i = 0; i < 9; i++) {
-        const validator = allWallets[i % allWallets.length];
+      validators.forEach((validator, i) => {
         const hash = createValidationRequest(agentId, wallet1, validator, i + 1);
         hashes.push(hash);
         // Add response
         addValidationResponse(hash, validator, 90n, i + 1);
-      }
+      });
 
       // act
       const result = simnet.callReadOnlyFn(
@@ -829,9 +835,10 @@ describe("Validation Registry - Stress Tests", () => {
       // arrange
       const agentId = registerAgent(wallet1);
 
-      // Create 15 validation requests (max for one page)
+      // Create 15 validation requests (wallet1 cannot validate itself, so skip it)
+      const validValidators = allWallets.filter(w => w !== wallet1);
       for (let i = 0; i < 15; i++) {
-        const validator = allWallets[i % allWallets.length];
+        const validator = validValidators[i % validValidators.length];
         const hash = createValidationRequest(agentId, wallet1, validator, i + 1);
         // Add response (first 5 with "verified" tag, rest with "pending")
         const tag = i < 5 ? "verified" : "pending";

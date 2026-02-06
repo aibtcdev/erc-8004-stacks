@@ -130,6 +130,26 @@
     (ok true)
   )
 )
+
+(define-public (transfer (token-id uint) (sender principal) (recipient principal))
+  (begin
+    (asserts! (is-eq tx-sender sender) ERR_INVALID_SENDER)
+    (let ((actual-owner (unwrap! (nft-get-owner? agent-identity token-id) ERR_AGENT_NOT_FOUND)))
+      (asserts! (is-eq sender actual-owner) ERR_NOT_AUTHORIZED)
+      ;; Phase 1: clear agent-wallet metadata here before transfer
+      (try! (nft-transfer? agent-identity token-id sender recipient))
+      (print {
+        notification: "identity-registry/Transfer",
+        payload: {
+          token-id: token-id,
+          sender: sender,
+          recipient: recipient
+        }
+      })
+      (ok true)
+    )
+  )
+)
 ;;
 
 ;; read only functions
@@ -152,6 +172,25 @@
 
 (define-read-only (get-version)
   VERSION
+)
+
+;; SIP-009 trait functions
+
+(define-read-only (get-last-token-id)
+  (let ((current-id (var-get next-agent-id)))
+    (if (is-eq current-id u0)
+      (err ERR_AGENT_NOT_FOUND)
+      (ok (- current-id u1))
+    )
+  )
+)
+
+(define-read-only (get-token-uri (token-id uint))
+  (ok (map-get? uris {agent-id: token-id}))
+)
+
+(define-read-only (get-owner (token-id uint))
+  (ok (nft-get-owner? agent-identity token-id))
 )
 ;;
 

@@ -23,12 +23,12 @@
 (define-constant ERR_EMPTY_URI (err u3010))
 (define-constant ERR_INVALID_DECIMALS (err u3011))
 (define-constant ERR_EMPTY_CLIENT_LIST (err u3012))
-(define-constant VERSION u"1.0.0")
+(define-constant VERSION u"2.0.0")
 
 ;; SIP-018 constants
 (define-constant SIP018_PREFIX 0x534950303138)
 (define-constant DOMAIN_NAME "reputation-registry")
-(define-constant DOMAIN_VERSION "1.0.0")
+(define-constant DOMAIN_VERSION "2.0.0")
 ;;
 
 ;; data vars

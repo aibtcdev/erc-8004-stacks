@@ -16,7 +16,7 @@
 (define-constant ERR_VALIDATION_EXISTS (err u2003))
 (define-constant ERR_INVALID_VALIDATOR (err u2004))
 (define-constant ERR_INVALID_RESPONSE (err u2005))
-(define-constant VERSION u"1.0.0")
+(define-constant VERSION u"2.0.0")
 ;;
 
 ;; data vars

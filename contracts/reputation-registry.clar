@@ -36,7 +36,7 @@
 ;; data maps
 (define-map feedback
   {agent-id: uint, client: principal, index: uint}
-  {value: int, value-decimals: uint, tag1: (buff 32), tag2: (buff 32), is-revoked: bool}
+  {value: int, value-decimals: uint, tag1: (string-utf8 64), tag2: (string-utf8 64), is-revoked: bool}
 )
 
 (define-map last-index {agent-id: uint, client: principal} uint)
@@ -79,8 +79,9 @@
   (agent-id uint)
   (value int)
   (value-decimals uint)
-  (tag1 (buff 32))
-  (tag2 (buff 32))
+  (tag1 (string-utf8 64))
+  (tag2 (string-utf8 64))
+  (endpoint (string-utf8 512))
   (feedback-uri (string-utf8 512))
   (feedback-hash (buff 32))
 )
@@ -88,12 +89,14 @@
     (caller contract-caller)
     (current-index (default-to u0 (map-get? last-index {agent-id: agent-id, client: caller})))
     (next-index (+ current-index u1))
+    (auth-check (contract-call? .identity-registry is-authorized-or-owner caller agent-id))
   )
     ;; Verify valueDecimals is valid (0-18)
     (asserts! (<= value-decimals u18) ERR_INVALID_DECIMALS)
-    ;; Verify agent exists and caller is NOT authorized (prevent self-feedback)
-    ;; Using is-authorized-or-owner also validates agent existence
-    (asserts! (is-err (contract-call? .identity-registry is-authorized-or-owner caller agent-id)) ERR_SELF_FEEDBACK)
+    ;; Verify agent exists (is-authorized-or-owner returns error if not)
+    (asserts! (is-ok auth-check) ERR_AGENT_NOT_FOUND)
+    ;; Verify caller is NOT authorized (prevent self-feedback)
+    (asserts! (not (unwrap-panic auth-check)) ERR_SELF_FEEDBACK)
     ;; Store feedback
     (map-set feedback
       {agent-id: agent-id, client: caller, index: next-index}
@@ -123,6 +126,7 @@
         value-decimals: value-decimals,
         tag1: tag1,
         tag2: tag2,
+        endpoint: endpoint,
         feedback-uri: feedback-uri,
         feedback-hash: feedback-hash
       }
@@ -135,8 +139,9 @@
   (agent-id uint)
   (value int)
   (value-decimals uint)
-  (tag1 (buff 32))
-  (tag2 (buff 32))
+  (tag1 (string-utf8 64))
+  (tag2 (string-utf8 64))
+  (endpoint (string-utf8 512))
   (feedback-uri (string-utf8 512))
   (feedback-hash (buff 32))
 )
@@ -183,6 +188,7 @@
         value-decimals: value-decimals,
         tag1: tag1,
         tag2: tag2,
+        endpoint: endpoint,
         feedback-uri: feedback-uri,
         feedback-hash: feedback-hash
       }
@@ -195,8 +201,9 @@
   (agent-id uint)
   (value int)
   (value-decimals uint)
-  (tag1 (buff 32))
-  (tag2 (buff 32))
+  (tag1 (string-utf8 64))
+  (tag2 (string-utf8 64))
+  (endpoint (string-utf8 512))
   (feedback-uri (string-utf8 512))
   (feedback-hash (buff 32))
   (signer principal)
@@ -252,6 +259,7 @@
         value-decimals: value-decimals,
         tag1: tag1,
         tag2: tag2,
+        endpoint: endpoint,
         feedback-uri: feedback-uri,
         feedback-hash: feedback-hash
       }
@@ -345,8 +353,8 @@
 (define-read-only (get-summary
   (agent-id uint)
   (opt-clients (optional (list 200 principal)))
-  (opt-tag1 (optional (buff 32)))
-  (opt-tag2 (optional (buff 32)))
+  (opt-tag1 (optional (string-utf8 64)))
+  (opt-tag2 (optional (string-utf8 64)))
 )
   (let (
     (client-list (default-to (default-to (list) (map-get? clients {agent-id: agent-id})) opt-clients))
@@ -382,8 +390,8 @@
 (define-read-only (read-all-feedback
   (agent-id uint)
   (opt-clients (optional (list 50 principal)))
-  (opt-tag1 (optional (buff 32)))
-  (opt-tag2 (optional (buff 32)))
+  (opt-tag1 (optional (string-utf8 64)))
+  (opt-tag2 (optional (string-utf8 64)))
   (include-revoked bool)
 )
   (let (
@@ -497,12 +505,12 @@
   (client principal)
   (acc {
     agent-id: uint,
-    tag1: (optional (buff 32)),
-    tag2: (optional (buff 32)),
+    tag1: (optional (string-utf8 64)),
+    tag2: (optional (string-utf8 64)),
     include-revoked: bool,
     client: principal,
     last-idx: uint,
-    items: (list 50 {client: principal, index: uint, value: int, value-decimals: uint, tag1: (buff 32), tag2: (buff 32), is-revoked: bool})
+    items: (list 50 {client: principal, index: uint, value: int, value-decimals: uint, tag1: (string-utf8 64), tag2: (string-utf8 64), is-revoked: bool})
   })
 )
   (let (
@@ -520,12 +528,12 @@
   (idx uint)
   (acc {
     agent-id: uint,
-    tag1: (optional (buff 32)),
-    tag2: (optional (buff 32)),
+    tag1: (optional (string-utf8 64)),
+    tag2: (optional (string-utf8 64)),
     include-revoked: bool,
     client: principal,
     last-idx: uint,
-    items: (list 50 {client: principal, index: uint, value: int, value-decimals: uint, tag1: (buff 32), tag2: (buff 32), is-revoked: bool})
+    items: (list 50 {client: principal, index: uint, value: int, value-decimals: uint, tag1: (string-utf8 64), tag2: (string-utf8 64), is-revoked: bool})
   })
 )
   (if (or (> idx (get last-idx acc)) (>= (len (get items acc)) u50))
@@ -567,7 +575,7 @@
 
 (define-private (summary-fold
   (client principal)
-  (acc {agent-id: uint, tag1: (optional (buff 32)), tag2: (optional (buff 32)), count: uint, total: int, client: principal, last-idx: uint})
+  (acc {agent-id: uint, tag1: (optional (string-utf8 64)), tag2: (optional (string-utf8 64)), count: uint, total: int, client: principal, last-idx: uint})
 )
   (let (
     (agent-id (get agent-id acc))
@@ -582,7 +590,7 @@
 
 (define-private (summary-index-fold
   (idx uint)
-  (acc {agent-id: uint, tag1: (optional (buff 32)), tag2: (optional (buff 32)), count: uint, total: int, client: principal, last-idx: uint})
+  (acc {agent-id: uint, tag1: (optional (string-utf8 64)), tag2: (optional (string-utf8 64)), count: uint, total: int, client: principal, last-idx: uint})
 )
   (if (> idx (get last-idx acc))
     acc

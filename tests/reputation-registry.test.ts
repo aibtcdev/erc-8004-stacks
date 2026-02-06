@@ -1203,6 +1203,6 @@ describe("reputation-registry read-only functions", () => {
     );
 
     // assert
-    expect(result).toStrictEqual(Cl.stringUtf8("1.0.0"));
+    expect(result).toStrictEqual(Cl.stringUtf8("2.0.0"));
   });
 });

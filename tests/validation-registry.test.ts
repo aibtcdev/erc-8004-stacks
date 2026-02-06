@@ -17,7 +17,7 @@ const address1 = accounts.get("wallet_1")!;
 const address2 = accounts.get("wallet_2")!;
 const address3 = accounts.get("wallet_3")!;
 
-// Helper to create a 32-byte buffer from a string
+// Helper to create a 32-byte buffer from a string (for request/response hashes)
 function hashFromString(s: string): Uint8Array {
   const hash = new Uint8Array(32);
   const bytes = new TextEncoder().encode(s);
@@ -147,7 +147,7 @@ describe("validation-registry public functions", () => {
     const requestUri = stringUtf8CV("ipfs://request-uri");
     const responseUri = stringUtf8CV("ipfs://response-uri");
     const responseHash = bufferCV(hashFromString("response-hash"));
-    const tag = bufferCV(hashFromString("verified"));
+    const tag = stringUtf8CV("verified");
 
     simnet.callPublicFn(
       "validation-registry",
@@ -175,7 +175,7 @@ describe("validation-registry public functions", () => {
     const requestUri = stringUtf8CV("ipfs://request-uri");
     const responseUri = stringUtf8CV("ipfs://response-uri");
     const responseHash = bufferCV(hashFromString("response-hash"));
-    const tag = bufferCV(hashFromString("verified"));
+    const tag = stringUtf8CV("verified");
 
     simnet.callPublicFn(
       "validation-registry",
@@ -203,7 +203,7 @@ describe("validation-registry public functions", () => {
     const requestUri = stringUtf8CV("ipfs://request-uri");
     const responseUri = stringUtf8CV("ipfs://response-uri");
     const responseHash = bufferCV(hashFromString("response-hash"));
-    const tag = bufferCV(hashFromString("verified"));
+    const tag = stringUtf8CV("verified");
 
     simnet.callPublicFn(
       "validation-registry",
@@ -229,7 +229,7 @@ describe("validation-registry public functions", () => {
     const requestHash = bufferCV(hashFromString("nonexistent"));
     const responseUri = stringUtf8CV("ipfs://response-uri");
     const responseHash = bufferCV(hashFromString("response-hash"));
-    const tag = bufferCV(hashFromString("verified"));
+    const tag = stringUtf8CV("verified");
 
     // act
     const { result } = simnet.callPublicFn(
@@ -251,7 +251,7 @@ describe("validation-registry public functions", () => {
     const responseUri1 = stringUtf8CV("ipfs://response-1");
     const responseUri2 = stringUtf8CV("ipfs://response-2");
     const responseHash = bufferCV(hashFromString("response-hash"));
-    const tag = bufferCV(hashFromString("verified"));
+    const tag = stringUtf8CV("verified");
 
     simnet.callPublicFn(
       "validation-registry",
@@ -320,7 +320,8 @@ describe("validation-registry read-only functions", () => {
     expect(resultValue["agent-id"]).toStrictEqual(uintCV(agentId));
     expect(resultValue.response).toStrictEqual(uintCV(0n));
     expect(resultValue["response-hash"]).toStrictEqual(bufferCV(new Uint8Array(32)));
-    expect(resultValue.tag).toStrictEqual(bufferCV(new Uint8Array(32)));
+    expect(resultValue.tag).toStrictEqual(stringUtf8CV(""));
+    expect(resultValue["has-response"]).toStrictEqual(Cl.bool(false));
   });
 
   it("get-validation-status() returns none for non-existent hash", () => {
@@ -427,7 +428,7 @@ describe("validation-registry read-only functions", () => {
     const agentId = registerAgent(address1);
     const hash1 = hashFromString("summary-1");
     const hash2 = hashFromString("summary-2");
-    const tag = bufferCV(hashFromString("verified"));
+    const tag = stringUtf8CV("verified");
     const responseHash = bufferCV(hashFromString("resp"));
 
     simnet.callPublicFn(
@@ -489,7 +490,7 @@ describe("validation-registry read-only functions", () => {
     const agentId = registerAgent(address1);
     const hash1 = hashFromString("filter-v-1");
     const hash2 = hashFromString("filter-v-2");
-    const tag = bufferCV(hashFromString("verified"));
+    const tag = stringUtf8CV("verified");
     const responseHash = bufferCV(hashFromString("resp"));
 
     simnet.callPublicFn(
@@ -570,6 +571,6 @@ describe("validation-registry read-only functions", () => {
     );
 
     // assert
-    expect(result).toStrictEqual(Cl.stringUtf8("1.0.0"));
+    expect(result).toStrictEqual(Cl.stringUtf8("2.0.0"));
   });
 });

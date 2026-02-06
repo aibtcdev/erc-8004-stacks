@@ -379,8 +379,51 @@
   (map-get? clients {agent-id: agent-id})
 )
 
-(define-read-only (get-response-count (agent-id uint) (client principal) (index uint) (responder principal))
+;; Legacy single response count (kept for backwards compatibility)
+(define-read-only (get-response-count-single (agent-id uint) (client principal) (index uint) (responder principal))
   (default-to u0 (map-get? response-count {agent-id: agent-id, client: client, index: index, responder: responder}))
+)
+
+;; Flexible response count with optional filters
+(define-read-only (get-response-count
+  (agent-id uint)
+  (opt-client (optional principal))
+  (opt-feedback-index (optional uint))
+  (opt-responders (optional (list 200 principal)))
+)
+  (match opt-client
+    ;; Client specified: count for that client
+    client-val
+      (let ((last-idx (get-last-index agent-id client-val)))
+        (match opt-feedback-index
+          ;; Specific feedback index
+          idx-val
+            (if (or (is-eq idx-val u0) (> idx-val last-idx))
+              ;; Index 0 or invalid: count all feedback for this client
+              (get total (fold count-all-feedback-fold
+                (list u1 u2 u3 u4 u5 u6 u7 u8 u9 u10)
+                {agent-id: agent-id, client: client-val, last-idx: last-idx, responders: opt-responders, total: u0, current-idx: u0}))
+              ;; Specific index: count for that feedback
+              (match opt-responders
+                responder-list (get total (fold count-responder-fold responder-list {agent-id: agent-id, client: client-val, index: idx-val, total: u0}))
+                (get total (fold count-all-responders-fold
+                  (default-to (list) (get-responders agent-id client-val idx-val))
+                  {agent-id: agent-id, client: client-val, index: idx-val, total: u0}))
+              )
+            )
+          ;; No index: count all feedback for this client
+          (get total (fold count-all-feedback-fold
+            (list u1 u2 u3 u4 u5 u6 u7 u8 u9 u10)
+            {agent-id: agent-id, client: client-val, last-idx: last-idx, responders: opt-responders, total: u0, current-idx: u0}))
+        )
+      )
+    ;; No client: count across all clients
+    (let ((client-list (default-to (list) (get-clients agent-id))))
+      (get total (fold count-all-clients-fold
+        client-list
+        {agent-id: agent-id, opt-feedback-index: opt-feedback-index, opt-responders: opt-responders, total: u0}))
+    )
+  )
 )
 
 (define-read-only (get-approved-limit (agent-id uint) (client principal))
@@ -621,5 +664,76 @@
       )
     )
   )
+)
+
+;; Response count fold helpers
+
+(define-private (count-all-clients-fold
+  (client principal)
+  (acc {agent-id: uint, opt-feedback-index: (optional uint), opt-responders: (optional (list 200 principal)), total: uint})
+)
+  (let (
+    (agent-id (get agent-id acc))
+    (last-idx (get-last-index agent-id client))
+  )
+    (match (get opt-feedback-index acc)
+      ;; Specific feedback index
+      idx-val
+        (if (or (is-eq idx-val u0) (> idx-val last-idx))
+          ;; Index 0 or invalid: count all feedback for this client
+          (merge acc {total: (+ (get total acc)
+            (get total (fold count-all-feedback-fold
+              (list u1 u2 u3 u4 u5 u6 u7 u8 u9 u10)
+              {agent-id: agent-id, client: client, last-idx: last-idx, responders: (get opt-responders acc), total: u0, current-idx: u0})))})
+          ;; Specific index: count for that feedback
+          (merge acc {total: (+ (get total acc)
+            (match (get opt-responders acc)
+              responder-list (get total (fold count-responder-fold responder-list {agent-id: agent-id, client: client, index: idx-val, total: u0}))
+              (get total (fold count-all-responders-fold
+                (default-to (list) (get-responders agent-id client idx-val))
+                {agent-id: agent-id, client: client, index: idx-val, total: u0}))
+            ))})
+        )
+      ;; No index: count all feedback for this client
+      (merge acc {total: (+ (get total acc)
+        (get total (fold count-all-feedback-fold
+          (list u1 u2 u3 u4 u5 u6 u7 u8 u9 u10)
+          {agent-id: agent-id, client: client, last-idx: last-idx, responders: (get opt-responders acc), total: u0, current-idx: u0})))})
+    )
+  )
+)
+
+(define-private (count-all-feedback-fold
+  (idx uint)
+  (acc {agent-id: uint, client: principal, last-idx: uint, responders: (optional (list 200 principal)), total: uint, current-idx: uint})
+)
+  (if (> idx (get last-idx acc))
+    acc
+    (let (
+      (responders-for-idx (default-to (list) (get-responders (get agent-id acc) (get client acc) idx)))
+    )
+      (merge acc {total: (+ (get total acc)
+        (match (get responders acc)
+          responder-list (get total (fold count-responder-fold responder-list {agent-id: (get agent-id acc), client: (get client acc), index: idx, total: u0}))
+          (get total (fold count-all-responders-fold responders-for-idx {agent-id: (get agent-id acc), client: (get client acc), index: idx, total: u0}))
+        ))})
+    )
+  )
+)
+
+(define-private (count-responder-fold
+  (responder principal)
+  (acc {agent-id: uint, client: principal, index: uint, total: uint})
+)
+  (merge acc {total: (+ (get total acc)
+    (get-response-count-single (get agent-id acc) (get client acc) (get index acc) responder))})
+)
+
+(define-private (count-all-responders-fold
+  (responder principal)
+  (acc {agent-id: uint, client: principal, index: uint, total: uint})
+)
+  (merge acc {total: (+ (get total acc)
+    (get-response-count-single (get agent-id acc) (get client acc) (get index acc) responder))})
 )
 ;;

@@ -16,6 +16,8 @@ const deployer = accounts.get("deployer")!;
 const address1 = accounts.get("wallet_1")!; // Agent owner
 const address2 = accounts.get("wallet_2")!; // Client
 const address3 = accounts.get("wallet_3")!; // Another client / responder
+const address4 = accounts.get("wallet_4")!; // Additional client for multi-client tests
+const address5 = accounts.get("wallet_5")!; // Additional client for multi-client tests
 
 // Helper to create a 32-byte buffer from a string
 function hashFromString(s: string): Uint8Array {
@@ -795,7 +797,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), noneCV(), noneCV(), noneCV()],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
       deployer
     );
 
@@ -838,7 +840,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), noneCV(), noneCV(), noneCV()],
+      [uintCV(agentId), Cl.list([Cl.principal(address2)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
       deployer
     );
 
@@ -847,6 +849,330 @@ describe("reputation-registry read-only functions", () => {
       Cl.tuple({
         count: uintCV(1n),
         "summary-value": Cl.int(100),
+        "summary-value-decimals": Cl.uint(0),
+      })
+    );
+  });
+
+  it("get-summary() returns empty summary for empty client list", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    const tag = Cl.stringUtf8("tag");
+    const hash = bufferCV(hashFromString("feedback-hash"));
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri1"), hash],
+      address2
+    );
+
+    // act - empty client list
+    const { result } = simnet.callReadOnlyFn(
+      "reputation-registry",
+      "get-summary",
+      [uintCV(agentId), Cl.list([]), Cl.stringUtf8(""), Cl.stringUtf8("")],
+      deployer
+    );
+
+    // assert - returns zeros for empty list
+    expect(result).toStrictEqual(
+      Cl.tuple({
+        count: uintCV(0n),
+        "summary-value": Cl.int(0),
+        "summary-value-decimals": Cl.uint(0),
+      })
+    );
+  });
+
+  it("get-summary() calculates average with same-precision feedback", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    const tag = Cl.stringUtf8("quality");
+    const hash = bufferCV(hashFromString("feedback-hash"));
+    // Three feedbacks: 80, 90, 95 (all decimals=0), average = 88 (truncated)
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri1"), hash],
+      address2
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(90), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri2"), hash],
+      address3
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(95), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri3"), hash],
+      address4
+    );
+
+    // act
+    const { result } = simnet.callReadOnlyFn(
+      "reputation-registry",
+      "get-summary",
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
+      deployer
+    );
+
+    // assert - average = (80 + 90 + 95) / 3 = 88 (truncated)
+    expect(result).toStrictEqual(
+      Cl.tuple({
+        count: uintCV(3n),
+        "summary-value": Cl.int(88),
+        "summary-value-decimals": Cl.uint(0),
+      })
+    );
+  });
+
+  it("get-summary() calculates average with negative same-precision values", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    const tag = Cl.stringUtf8("penalty");
+    const hash = bufferCV(hashFromString("feedback-hash"));
+    // Three feedbacks: -10, -20, -30 (all decimals=0), average = -20
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(-10), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri1"), hash],
+      address2
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(-20), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri2"), hash],
+      address3
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(-30), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri3"), hash],
+      address4
+    );
+
+    // act
+    const { result } = simnet.callReadOnlyFn(
+      "reputation-registry",
+      "get-summary",
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
+      deployer
+    );
+
+    // assert - average = (-10 + -20 + -30) / 3 = -20
+    expect(result).toStrictEqual(
+      Cl.tuple({
+        count: uintCV(3n),
+        "summary-value": Cl.int(-20),
+        "summary-value-decimals": Cl.uint(0),
+      })
+    );
+  });
+
+  it("get-summary() normalizes mixed-precision feedback with WAD", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    const tag = Cl.stringUtf8("mixed");
+    const hash = bufferCV(hashFromString("feedback-hash"));
+    // Mixed precision feedback:
+    // Client 1: value=85, decimals=0 (represents 85) -> WAD: 85 * 10^18
+    // Client 2: value=9977, decimals=2 (represents 99.77) -> WAD: 9977 * 10^16
+    // Client 3: value=-32, decimals=1 (represents -3.2) -> WAD: -32 * 10^17
+    // WAD sum = 85*10^18 + 9977*10^16 + (-32)*10^17 = 181570000000000000000
+    // WAD avg = 181570000000000000000 / 3 = 60523333333333333333
+    // Mode decimals = 0 (most frequent)
+    // Scaled back = 60523333333333333333 / 10^18 = 60 (truncated)
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(85), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri1"), hash],
+      address2
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(9977), Cl.uint(2), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri2"), hash],
+      address3
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(-32), Cl.uint(1), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri3"), hash],
+      address4
+    );
+
+    // act
+    const { result } = simnet.callReadOnlyFn(
+      "reputation-registry",
+      "get-summary",
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
+      deployer
+    );
+
+    // assert
+    expect(result).toStrictEqual(
+      Cl.tuple({
+        count: uintCV(3n),
+        "summary-value": Cl.int(60),
+        "summary-value-decimals": Cl.uint(0),
+      })
+    );
+  });
+
+  it("get-summary() returns mode decimals for all same non-zero decimals", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    const tag = Cl.stringUtf8("decimals-test");
+    const hash = bufferCV(hashFromString("feedback-hash"));
+    // All feedback with decimals=2: 8000, 9000, 10000 (represents 80.00, 90.00, 100.00)
+    // Average = (8000 + 9000 + 10000) / 3 = 9000 (in decimals=2)
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(8000), Cl.uint(2), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri1"), hash],
+      address2
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(9000), Cl.uint(2), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri2"), hash],
+      address3
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(10000), Cl.uint(2), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri3"), hash],
+      address4
+    );
+
+    // act
+    const { result } = simnet.callReadOnlyFn(
+      "reputation-registry",
+      "get-summary",
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
+      deployer
+    );
+
+    // assert - mode decimals should be 2
+    expect(result).toStrictEqual(
+      Cl.tuple({
+        count: uintCV(3n),
+        "summary-value": Cl.int(9000),
+        "summary-value-decimals": Cl.uint(2),
+      })
+    );
+  });
+
+  it("get-summary() selects mode decimals when mixed", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    const tag = Cl.stringUtf8("mode-test");
+    const hash = bufferCV(hashFromString("feedback-hash"));
+    // Mixed decimals: decimals=0 appears once, decimals=1 appears twice (mode)
+    // Values: 80 (decimals=0), 850 (decimals=1 = 85.0), 950 (decimals=1 = 95.0)
+    // WAD: 80*10^18, 850*10^17, 950*10^17
+    // Mode = 1 (appears 2 times)
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri1"), hash],
+      address2
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(850), Cl.uint(1), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri2"), hash],
+      address3
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(950), Cl.uint(1), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri3"), hash],
+      address4
+    );
+
+    // act
+    const { result } = simnet.callReadOnlyFn(
+      "reputation-registry",
+      "get-summary",
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
+      deployer
+    );
+
+    // assert - mode decimals should be 1
+    const resultTuple = result as any;
+    expect(resultTuple.value["summary-value-decimals"].value).toBe(1n);
+    expect(resultTuple.value.count.value).toBe(3n);
+  });
+
+  it("get-summary() with tag filters and mixed precision", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    const tag1 = Cl.stringUtf8("performance");
+    const tag2 = Cl.stringUtf8("quality");
+    const otherTag = Cl.stringUtf8("other");
+    const hash = bufferCV(hashFromString("feedback-hash"));
+    // Two matching feedback with mixed precision
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(90), Cl.uint(0), tag1, tag2, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri1"), hash],
+      address2
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(9500), Cl.uint(2), tag1, tag2, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri2"), hash],
+      address3
+    );
+    // Non-matching feedback (different tags)
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(50), Cl.uint(0), otherTag, otherTag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri3"), hash],
+      address4
+    );
+
+    // act - filter by tag1 and tag2
+    const { result } = simnet.callReadOnlyFn(
+      "reputation-registry",
+      "get-summary",
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), tag1, tag2],
+      deployer
+    );
+
+    // assert - only first two should match, average normalized with WAD
+    const resultTuple = result as any;
+    expect(resultTuple.value.count.value).toBe(2n);
+  });
+
+  it("get-summary() returns zeros when no matching feedback", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    const tag = Cl.stringUtf8("exists");
+    const nonMatchingTag = Cl.stringUtf8("nonexistent");
+    const hash = bufferCV(hashFromString("feedback-hash"));
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri1"), hash],
+      address2
+    );
+
+    // act - filter with non-matching tag
+    const { result } = simnet.callReadOnlyFn(
+      "reputation-registry",
+      "get-summary",
+      [uintCV(agentId), Cl.list([Cl.principal(address2)]), nonMatchingTag, nonMatchingTag],
+      deployer
+    );
+
+    // assert
+    expect(result).toStrictEqual(
+      Cl.tuple({
+        count: uintCV(0n),
+        "summary-value": Cl.int(0),
         "summary-value-decimals": Cl.uint(0),
       })
     );

@@ -106,7 +106,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     const summaryResult = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), noneCV(), noneCV(), noneCV()],
+      [uintCV(agentId), Cl.list([Cl.principal(client1)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
       deployer
     );
     const summary = summaryResult.result as any;
@@ -154,7 +154,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     let summaryResult = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), noneCV(), noneCV(), noneCV()],
+      [uintCV(agentId), Cl.list([Cl.principal(client1)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
       deployer
     );
     let summary = summaryResult.result as any;
@@ -174,7 +174,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     summaryResult = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), noneCV(), noneCV(), noneCV()],
+      [uintCV(agentId), Cl.list([Cl.principal(client1)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
       deployer
     );
     summary = summaryResult.result as any;

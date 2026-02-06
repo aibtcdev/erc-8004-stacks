@@ -36,7 +36,6 @@
 ;;
 
 ;; data maps
-(define-map owners {agent-id: uint} principal)
 (define-map uris {agent-id: uint} (string-utf8 512))
 (define-map metadata {agent-id: uint, key: (string-utf8 128)} (buff 512))
 (define-map approvals {agent-id: uint, operator: principal} bool)
@@ -63,7 +62,7 @@
   )
     ;; Atomic update
     (var-set next-agent-id updated-next)
-    (asserts! (map-insert owners {agent-id: agent-id} owner) ERR_AGENT_ALREADY_EXISTS)
+    (try! (nft-mint? agent-identity agent-id owner))
     (asserts! (map-insert uris {agent-id: agent-id} token-uri) ERR_AGENT_ALREADY_EXISTS)
     (asserts! (get success
       (fold metadata-fold-entry metadata-entries
@@ -115,7 +114,7 @@
 
 (define-public (set-approval-for-all (agent-id uint) (operator principal) (approved bool))
   (let (
-    (owner (unwrap! (map-get? owners {agent-id: agent-id}) ERR_AGENT_NOT_FOUND))
+    (owner (unwrap! (nft-get-owner? agent-identity agent-id) ERR_AGENT_NOT_FOUND))
   )
     (asserts! (is-eq tx-sender owner) ERR_NOT_AUTHORIZED)
     (map-set approvals {agent-id: agent-id, operator: operator} approved)
@@ -154,8 +153,9 @@
 
 ;; read only functions
 
+;; Legacy alias for backward compatibility
 (define-read-only (owner-of (agent-id uint))
-  (map-get? owners {agent-id: agent-id})
+  (nft-get-owner? agent-identity agent-id)
 )
 
 (define-read-only (get-uri (agent-id uint))
@@ -213,10 +213,10 @@
 
 (define-private (is-authorized (agent-id uint) (caller principal))
   (let (
-    (owner-opt (map-get? owners {agent-id: agent-id}))
+    (owner-opt (nft-get-owner? agent-identity agent-id))
   )
     (match owner-opt owner
-      (or 
+      (or
         (is-eq caller owner)
         (is-approved-for-all agent-id caller)
       )

@@ -75,11 +75,15 @@
     (asserts! (map-insert uris {agent-id: agent-id} token-uri) ERR_AGENT_ALREADY_EXISTS)
     ;; Auto-set agent-wallet to owner
     (map-set agent-wallets {agent-id: agent-id} owner)
-    (asserts! (get success
-      (fold metadata-fold-entry metadata-entries
-        {agent-id: agent-id, success: true}
-      )
-    ) ERR_METADATA_SET_FAILED)
+    (let (
+      (fold-result (fold metadata-fold-entry metadata-entries
+        {agent-id: agent-id, success: true, reserved-key-found: false}
+      ))
+    )
+      (asserts! (not (get reserved-key-found fold-result)) ERR_RESERVED_KEY)
+      (asserts! (get success fold-result) ERR_METADATA_SET_FAILED)
+      true
+    )
     (print {
       notification: "identity-registry/Registered",
       payload: {
@@ -335,7 +339,7 @@
 
 (define-private (metadata-fold-entry
   (entry {key: (string-utf8 128), value: (buff 512)})
-  (prior-acc {agent-id: uint, success: bool})
+  (prior-acc {agent-id: uint, success: bool, reserved-key-found: bool})
 )
   (if (not (get success prior-acc))
     prior-acc
@@ -343,10 +347,10 @@
       (aid (get agent-id prior-acc))
     )
       (if (is-eq (get key entry) RESERVED_KEY_AGENT_WALLET)
-        {agent-id: aid, success: false}
+        {agent-id: aid, success: false, reserved-key-found: true}
         (begin
           (map-set metadata {agent-id: aid, key: (get key entry)} (get value entry))
-          {agent-id: aid, success: true}
+          {agent-id: aid, success: true, reserved-key-found: false}
         )
       )
     )

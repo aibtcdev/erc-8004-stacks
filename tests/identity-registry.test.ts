@@ -584,8 +584,8 @@ describe("identity-registry agent-wallet feature", () => {
       address1
     );
 
-    // assert - ERR_METADATA_SET_FAILED is u1003
-    expect(result).toBeErr(uintCV(1003n));
+    // assert - ERR_RESERVED_KEY is u1004 (more specific than ERR_METADATA_SET_FAILED)
+    expect(result).toBeErr(uintCV(1004n));
   });
 
   it("get-agent-wallet() returns none for non-existent agent", () => {

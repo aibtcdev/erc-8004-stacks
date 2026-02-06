@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ERC-8004 Stacks Contracts - Clarity smart contracts implementing the ERC-8004 agent identity/reputation/validation protocol for Stacks blockchain. Mirrors the [Solidity reference implementation](https://github.com/erc8004-org/erc8004-contracts).
 
-**Current Status**: All three registries ✅ complete with 125 tests passing. v2.0.0 spec-compliant. Deployed to testnet.
+**Current Status**: All three registries ✅ complete with 151 tests passing. v2.0.0 spec-compliant. Deployed to testnet.
 
 ## Commands
 
@@ -126,15 +126,27 @@ Three contracts implementing ERC-8004 spec as chain singletons:
 (define-read-only (get-summary
   (agent-id uint)
   (client-addresses (list 200 principal)) ;; required, non-empty
-  (tag1 (string-utf8 64)) (tag2 (string-utf8 64))
+  (opt-tag1 (optional (string-utf8 64))) ;; optional tags for filtering
+  (opt-tag2 (optional (string-utf8 64)))
   (opt-cursor (optional uint)) ;; pagination offset, none starts at 1
 ) {count: uint, summary-value: int, summary-value-decimals: uint, cursor: (optional uint)})
 
 (define-read-only (read-all-feedback
-  (agent-id uint) (opt-clients (optional (list 50 principal)))
-  (opt-tag1 (optional (string-utf8 64))) (opt-tag2 (optional (string-utf8 64)))
-  (include-revoked bool) (opt-cursor (optional uint))
-) {items: (list 50 {...}), cursor: (optional uint)})
+  (agent-id uint)
+  (opt-tag1 (optional (string-utf8 64))) ;; optional tags for filtering
+  (opt-tag2 (optional (string-utf8 64)))
+  (include-revoked bool)
+  (opt-cursor (optional uint)) ;; pagination via global sequence, page size 15
+) {items: (list 15 {...}), cursor: (optional uint)})
+
+(define-read-only (get-clients (agent-id uint) (opt-cursor (optional uint)))
+  {clients: (list 15 principal), cursor: (optional uint)})
+
+(define-read-only (get-responders
+  (agent-id uint) (client principal) (index uint) (opt-cursor (optional uint)))
+  {responders: (list 15 principal), cursor: (optional uint)})
+
+(define-read-only (get-agent-feedback-count (agent-id uint)) uint)
 
 (define-read-only (get-response-count
   (agent-id uint) (opt-client (optional principal))
@@ -148,6 +160,12 @@ Three contracts implementing ERC-8004 spec as chain singletons:
   (response-uri (string-utf8 512)) (response-hash (buff 32))
   (tag (string-utf8 64)) ;; single tag
 ) (response bool uint))
+
+(define-read-only (get-agent-validations (agent-id uint) (opt-cursor (optional uint)))
+  {validations: (list 15 (buff 32)), cursor: (optional uint)})
+
+(define-read-only (get-validator-requests (validator principal) (opt-cursor (optional uint)))
+  {requests: (list 15 (buff 32)), cursor: (optional uint)})
 ```
 
 ## Testing
@@ -175,6 +193,20 @@ expect(result).toBeSome(Cl.principal(address1));
 ```
 
 **Clarinet SDK matchers**: `toBeOk()`, `toBeErr()`, `toBeSome()`, `toBeNone()`, `toBeBool()`, `toBeUint()`
+
+## Traits
+
+Three trait contracts define interfaces for cross-contract conformance:
+
+| Trait | Functions | Notes |
+|-------|-----------|-------|
+| `identity-registry-trait.clar` | 14 functions | All public functions + SIP-009 + is-authorized-or-owner. Requires `(response ...)` return types. |
+| `reputation-registry-trait.clar` | 6 functions | All public state-changing functions (give-feedback, revoke-feedback, approve-client, append-response). |
+| `validation-registry-trait.clar` | 2 functions | All public state-changing functions (validation-request, validation-response). |
+
+**Implementation**: Each registry declares `(impl-trait .{trait-name}.{trait-name})` for compile-time verification.
+
+**Hybrid approach**: Clarity traits require `(response ...)` returns, so raw-return read-only functions (returning `optional`, `uint`, tuples) are documented but not trait-enforced. This is a Clarity language constraint, not a design choice.
 
 ## Reference Documentation
 

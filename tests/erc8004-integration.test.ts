@@ -635,14 +635,15 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
 });
 
 describe("ERC-8004 Integration: Version Consistency", () => {
-  it("all contracts report version 1.0.0", () => {
+  it("all contracts report version 1.0.0 or 2.0.0", () => {
     const identityVersion = simnet.callReadOnlyFn(
       "identity-registry",
       "get-version",
       [],
       deployer
     );
-    expect(identityVersion.result).toStrictEqual(stringUtf8CV("1.0.0"));
+    // Phase 1: identity registry updated to 2.0.0
+    expect(identityVersion.result).toStrictEqual(stringUtf8CV("2.0.0"));
 
     const reputationVersion = simnet.callReadOnlyFn(
       "reputation-registry",
@@ -650,6 +651,7 @@ describe("ERC-8004 Integration: Version Consistency", () => {
       [],
       deployer
     );
+    // Phase 2+: reputation registry still at 1.0.0
     expect(reputationVersion.result).toStrictEqual(stringUtf8CV("1.0.0"));
 
     const validationVersion = simnet.callReadOnlyFn(
@@ -658,6 +660,7 @@ describe("ERC-8004 Integration: Version Consistency", () => {
       [],
       deployer
     );
+    // Phase 5: validation registry still at 1.0.0
     expect(validationVersion.result).toStrictEqual(stringUtf8CV("1.0.0"));
   });
 

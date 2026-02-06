@@ -796,7 +796,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3)]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
       deployer
     );
 
@@ -806,6 +806,7 @@ describe("reputation-registry read-only functions", () => {
         count: uintCV(2n),
         "summary-value": Cl.int(90),
         "summary-value-decimals": Cl.uint(0),
+        cursor: noneCV(),
       })
     );
   });
@@ -839,7 +840,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
+      [uintCV(agentId), Cl.list([Cl.principal(address2)]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
       deployer
     );
 
@@ -849,6 +850,7 @@ describe("reputation-registry read-only functions", () => {
         count: uintCV(1n),
         "summary-value": Cl.int(100),
         "summary-value-decimals": Cl.uint(0),
+        cursor: noneCV(),
       })
     );
   });
@@ -869,7 +871,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([]), Cl.stringUtf8(""), Cl.stringUtf8("")],
+      [uintCV(agentId), Cl.list([]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
       deployer
     );
 
@@ -879,6 +881,7 @@ describe("reputation-registry read-only functions", () => {
         count: uintCV(0n),
         "summary-value": Cl.int(0),
         "summary-value-decimals": Cl.uint(0),
+        cursor: noneCV(),
       })
     );
   });
@@ -912,7 +915,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
       deployer
     );
 
@@ -922,6 +925,7 @@ describe("reputation-registry read-only functions", () => {
         count: uintCV(3n),
         "summary-value": Cl.int(88),
         "summary-value-decimals": Cl.uint(0),
+        cursor: noneCV(),
       })
     );
   });
@@ -955,7 +959,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
       deployer
     );
 
@@ -965,6 +969,7 @@ describe("reputation-registry read-only functions", () => {
         count: uintCV(3n),
         "summary-value": Cl.int(-20),
         "summary-value-decimals": Cl.uint(0),
+        cursor: noneCV(),
       })
     );
   });
@@ -1005,7 +1010,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
       deployer
     );
 
@@ -1015,6 +1020,7 @@ describe("reputation-registry read-only functions", () => {
         count: uintCV(3n),
         "summary-value": Cl.int(60),
         "summary-value-decimals": Cl.uint(0),
+        cursor: noneCV(),
       })
     );
   });
@@ -1049,7 +1055,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
       deployer
     );
 
@@ -1059,6 +1065,7 @@ describe("reputation-registry read-only functions", () => {
         count: uintCV(3n),
         "summary-value": Cl.int(9000),
         "summary-value-decimals": Cl.uint(2),
+        cursor: noneCV(),
       })
     );
   });
@@ -1095,7 +1102,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
       deployer
     );
 
@@ -1137,7 +1144,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), tag1, tag2],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), tag1, tag2, noneCV()],
       deployer
     );
 
@@ -1163,7 +1170,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2)]), nonMatchingTag, nonMatchingTag],
+      [uintCV(agentId), Cl.list([Cl.principal(address2)]), nonMatchingTag, nonMatchingTag, noneCV()],
       deployer
     );
 
@@ -1173,6 +1180,7 @@ describe("reputation-registry read-only functions", () => {
         count: uintCV(0n),
         "summary-value": Cl.int(0),
         "summary-value-decimals": Cl.uint(0),
+        cursor: noneCV(),
       })
     );
   });

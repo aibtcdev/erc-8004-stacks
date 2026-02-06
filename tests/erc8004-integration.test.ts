@@ -99,7 +99,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     const summaryResult = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(client1)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
+      [uintCV(agentId), Cl.list([Cl.principal(client1)]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
       deployer
     );
     const summary = summaryResult.result as any;
@@ -147,7 +147,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     let summaryResult = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(client1)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
+      [uintCV(agentId), Cl.list([Cl.principal(client1)]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
       deployer
     );
     let summary = summaryResult.result as any;
@@ -167,7 +167,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     summaryResult = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(client1)]), Cl.stringUtf8(""), Cl.stringUtf8("")],
+      [uintCV(agentId), Cl.list([Cl.principal(client1)]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
       deployer
     );
     summary = summaryResult.result as any;
@@ -578,11 +578,11 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
     const result = simnet.callReadOnlyFn(
       "reputation-registry",
       "read-all-feedback",
-      [uintCV(agentId), noneCV(), noneCV(), noneCV(), Cl.bool(false)],
+      [uintCV(agentId), noneCV(), noneCV(), noneCV(), Cl.bool(false), noneCV()],
       deployer
     );
     const items = result.result as any;
-    expect(items.value.length).toBe(3);
+    expect(items.value.items.value.length).toBe(3);
   });
 
   it("read-all-feedback filters by tag", () => {
@@ -627,11 +627,11 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
     const result = simnet.callReadOnlyFn(
       "reputation-registry",
       "read-all-feedback",
-      [uintCV(agentId), noneCV(), someCV(qualityTag), noneCV(), Cl.bool(false)],
+      [uintCV(agentId), noneCV(), someCV(qualityTag), noneCV(), Cl.bool(false), noneCV()],
       deployer
     );
     const items = result.result as any;
-    expect(items.value.length).toBe(2); // Only quality-tagged feedbacks
+    expect(items.value.items.value.length).toBe(2); // Only quality-tagged feedbacks
   });
 
   it("read-all-feedback respects include-revoked flag", () => {
@@ -682,21 +682,21 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
     let result = simnet.callReadOnlyFn(
       "reputation-registry",
       "read-all-feedback",
-      [uintCV(agentId), noneCV(), noneCV(), noneCV(), Cl.bool(false)],
+      [uintCV(agentId), noneCV(), noneCV(), noneCV(), Cl.bool(false), noneCV()],
       deployer
     );
     let items = result.result as any;
-    expect(items.value.length).toBe(2);
+    expect(items.value.items.value.length).toBe(2);
 
     // Read with revoked included
     result = simnet.callReadOnlyFn(
       "reputation-registry",
       "read-all-feedback",
-      [uintCV(agentId), noneCV(), noneCV(), noneCV(), Cl.bool(true)],
+      [uintCV(agentId), noneCV(), noneCV(), noneCV(), Cl.bool(true), noneCV()],
       deployer
     );
     items = result.result as any;
-    expect(items.value.length).toBe(3);
+    expect(items.value.items.value.length).toBe(3);
   });
 });
 
@@ -926,7 +926,8 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
         uintCV(agentId),
         Cl.list([Cl.principal(client1), Cl.principal(client2), Cl.principal(validator)]),
         emptyTag,
-        emptyTag
+        emptyTag,
+        noneCV()
       ],
       deployer
     );
@@ -1052,7 +1053,8 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
         uintCV(agentId),
         Cl.list([Cl.principal(client1), Cl.principal(client2), Cl.principal(validator)]),
         emptyTag,
-        emptyTag
+        emptyTag,
+        noneCV()
       ],
       deployer
     );
@@ -1098,7 +1100,8 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
         uintCV(agentId),
         Cl.list([Cl.principal(client1), Cl.principal(client2), Cl.principal(validator)]),
         Cl.stringUtf8("uptime"),
-        Cl.stringUtf8("")
+        Cl.stringUtf8(""),
+        noneCV()
       ],
       deployer
     );

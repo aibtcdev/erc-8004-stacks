@@ -127,7 +127,20 @@ Three contracts implementing ERC-8004 spec as chain singletons:
   (agent-id uint)
   (client-addresses (list 200 principal)) ;; required, non-empty
   (tag1 (string-utf8 64)) (tag2 (string-utf8 64))
-) (response {count: uint, summary-value: int, summary-value-decimals: uint} uint))
+  (opt-cursor (optional uint)) ;; pagination offset, none starts at 1
+) {count: uint, summary-value: int, summary-value-decimals: uint, cursor: (optional uint)})
+
+(define-read-only (read-all-feedback
+  (agent-id uint) (opt-clients (optional (list 50 principal)))
+  (opt-tag1 (optional (string-utf8 64))) (opt-tag2 (optional (string-utf8 64)))
+  (include-revoked bool) (opt-cursor (optional uint))
+) {items: (list 50 {...}), cursor: (optional uint)})
+
+(define-read-only (get-response-count
+  (agent-id uint) (opt-client (optional principal))
+  (opt-feedback-index (optional uint)) (opt-responders (optional (list 200 principal)))
+  (opt-cursor (optional uint))
+) {total: uint, cursor: (optional uint)})
 
 ;; Validation Registry
 (define-public (validation-response

@@ -68,7 +68,10 @@
 (define-map approved-clients {agent-id: uint, client: principal} uint)
 
 (define-map response-count {agent-id: uint, client: principal, index: uint, responder: principal} uint)
-(define-map responders {agent-id: uint, client: principal, index: uint} (list 256 principal))
+
+;; Responder tracking with counter+indexed-map pattern
+(define-map responder-count {agent-id: uint, client: principal, index: uint} uint)
+(define-map responder-at-index {agent-id: uint, client: principal, index: uint, responder-index: uint} principal)
 (define-map responder-exists {agent-id: uint, client: principal, index: uint, responder: principal} bool)
 ;;
 
@@ -337,12 +340,13 @@
     (asserts! (> (len response-uri) u0) ERR_EMPTY_URI)
     ;; Track responder if new
     (if (not (default-to false (map-get? responder-exists {agent-id: agent-id, client: client, index: index, responder: responder})))
-      (begin
+      (let (
+        (current-count (default-to u0 (map-get? responder-count {agent-id: agent-id, client: client, index: index})))
+        (next-count (+ current-count u1))
+      )
         (map-set responder-exists {agent-id: agent-id, client: client, index: index, responder: responder} true)
-        (map-set responders {agent-id: agent-id, client: client, index: index}
-          (unwrap! (as-max-len?
-            (append (default-to (list) (map-get? responders {agent-id: agent-id, client: client, index: index})) responder)
-            u256) ERR_NOT_AUTHORIZED))
+        (map-set responder-count {agent-id: agent-id, client: client, index: index} next-count)
+        (map-set responder-at-index {agent-id: agent-id, client: client, index: index, responder-index: next-count} responder)
       )
       true
     )
@@ -487,7 +491,7 @@
                 {total: (match opt-responders
                   responder-list (get total (fold count-responder-fold responder-list {agent-id: agent-id, client: client-val, index: idx-val, total: u0}))
                   (get total (fold count-all-responders-fold
-                    (default-to (list) (get-responders agent-id client-val idx-val))
+                    (get responders (get-responders agent-id client-val idx-val none))
                     {agent-id: agent-id, client: client-val, index: idx-val, total: u0}))
                 ), cursor: none}
               )
@@ -552,8 +556,22 @@
   )
 )
 
-(define-read-only (get-responders (agent-id uint) (client principal) (index uint))
-  (map-get? responders {agent-id: agent-id, client: client, index: index})
+(define-read-only (get-responders (agent-id uint) (client principal) (index uint) (opt-cursor (optional uint)))
+  (let (
+    (total-count (default-to u0 (map-get? responder-count {agent-id: agent-id, client: client, index: index})))
+    (cursor-offset (default-to u0 opt-cursor))
+    (page-end (+ cursor-offset PAGE_SIZE))
+    (has-more (> total-count page-end))
+    (result (fold build-responder-list-fold
+      PAGE_INDEX_LIST
+      {agent-id: agent-id, client: client, index: index, cursor-offset: cursor-offset, total-count: total-count, responders: (list)}
+    ))
+  )
+    {
+      responders: (get responders result),
+      cursor: (if has-more (some page-end) none)
+    }
+  )
 )
 
 (define-read-only (get-identity-registry)
@@ -861,7 +879,7 @@
             (match (get opt-responders acc)
               responder-list (get total (fold count-responder-fold responder-list {agent-id: agent-id, client: client, index: idx-val, total: u0}))
               (get total (fold count-all-responders-fold
-                (default-to (list) (get-responders agent-id client idx-val))
+                (get responders (get-responders agent-id client idx-val none))
                 {agent-id: agent-id, client: client, index: idx-val, total: u0}))
             ))})
         )
@@ -883,7 +901,7 @@
     (if (> actual-idx (get last-idx acc))
       acc
       (let (
-        (responders-for-idx (default-to (list) (get-responders (get agent-id acc) (get client acc) actual-idx)))
+        (responders-for-idx (get responders (get-responders (get agent-id acc) (get client acc) actual-idx none)))
       )
         (merge acc {total: (+ (get total acc)
           (match (get responders acc)
@@ -925,6 +943,34 @@
         (match client-opt client
           (match (as-max-len? (append (get clients acc) client) u15)
             new-clients (merge acc {clients: new-clients})
+            acc
+          )
+          acc
+        )
+      )
+    )
+  )
+)
+
+;; Helper for building paginated responder lists
+(define-private (build-responder-list-fold
+  (idx uint)
+  (acc {agent-id: uint, client: principal, index: uint, cursor-offset: uint, total-count: uint, responders: (list 15 principal)})
+)
+  (let ((actual-idx (+ idx (get cursor-offset acc))))
+    (if (> actual-idx (get total-count acc))
+      acc
+      (let (
+        (responder-opt (map-get? responder-at-index {
+          agent-id: (get agent-id acc),
+          client: (get client acc),
+          index: (get index acc),
+          responder-index: actual-idx
+        }))
+      )
+        (match responder-opt responder
+          (match (as-max-len? (append (get responders acc) responder) u15)
+            new-responders (merge acc {responders: new-responders})
             acc
           )
           acc

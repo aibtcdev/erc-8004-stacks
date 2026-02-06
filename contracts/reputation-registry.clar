@@ -22,6 +22,7 @@
 (define-constant ERR_INDEX_LIMIT_EXCEEDED (err u3009))
 (define-constant ERR_EMPTY_URI (err u3010))
 (define-constant ERR_INVALID_DECIMALS (err u3011))
+(define-constant ERR_EMPTY_CLIENT_LIST (err u3012))
 (define-constant VERSION u"1.0.0")
 
 ;; SIP-018 constants
@@ -352,22 +353,57 @@
 
 (define-read-only (get-summary
   (agent-id uint)
-  (opt-clients (optional (list 200 principal)))
-  (opt-tag1 (optional (string-utf8 64)))
-  (opt-tag2 (optional (string-utf8 64)))
+  (client-addresses (list 200 principal))
+  (tag1 (string-utf8 64))
+  (tag2 (string-utf8 64))
 )
   (let (
-    (client-list (default-to (default-to (list) (map-get? clients {agent-id: agent-id})) opt-clients))
-    (result (fold summary-fold client-list {agent-id: agent-id, tag1: opt-tag1, tag2: opt-tag2, count: u0, total: 0, client: tx-sender, last-idx: u0}))
+    ;; Validate non-empty client list (return empty summary if empty)
+    (list-len (len client-addresses))
   )
-    {
-      count: (get count result),
-      summary-value: (if (> (get count result) u0)
-        (/ (get total result) (to-int (get count result)))
-        0
-      ),
-      summary-value-decimals: u0
-    }
+    (if (is-eq list-len u0)
+      ;; Empty list: return empty summary
+      {count: u0, summary-value: 0, summary-value-decimals: u0}
+      ;; Process feedback
+      (let (
+        ;; Initialize frequency list with 19 zeros
+        (init-freq (list u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0))
+        ;; Fold over clients to accumulate WAD-normalized values
+        (result (fold summary-fold
+          client-addresses
+          {
+            agent-id: agent-id,
+            tag1: tag1,
+            tag2: tag2,
+            count: u0,
+            wad-sum: 0,
+            decimal-freq: init-freq,
+            client: tx-sender,
+            last-idx: u0
+          }
+        ))
+        (count (get count result))
+        (wad-sum (get wad-sum result))
+        (decimal-freq (get decimal-freq result))
+      )
+        (if (is-eq count u0)
+          ;; No matching feedback
+          {count: u0, summary-value: 0, summary-value-decimals: u0}
+          ;; Calculate average and scale back
+          (let (
+            (avg-wad (/ wad-sum (to-int count)))
+            (mode-decimals (find-mode-decimals decimal-freq))
+            (summary-value (scale-from-wad avg-wad mode-decimals))
+          )
+            {
+              count: count,
+              summary-value: summary-value,
+              summary-value-decimals: mode-decimals
+            }
+          )
+        )
+      )
+    )
   )
 )
 
@@ -480,6 +516,59 @@
 ;;
 
 ;; private functions
+
+;; WAD normalization helpers (18-decimal precision)
+
+(define-private (normalize-to-wad (value int) (decimals uint))
+  ;; Normalize value to 18 decimals: value * 10^(18 - decimals)
+  (if (>= decimals u18)
+    value
+    (* value (to-int (pow u10 (- u18 decimals))))
+  )
+)
+
+(define-private (scale-from-wad (wad-value int) (target-decimals uint))
+  ;; Scale from 18 decimals to target: wad-value / 10^(18 - target-decimals)
+  (if (>= target-decimals u18)
+    wad-value
+    (/ wad-value (to-int (pow u10 (- u18 target-decimals))))
+  )
+)
+
+(define-private (find-mode-decimals (freq-list (list 19 uint)))
+  ;; Find index with maximum count (most frequent decimals)
+  (get mode-idx (fold find-mode-fold
+    freq-list
+    {mode-idx: u0, mode-count: u0, current-idx: u0}
+  ))
+)
+
+(define-private (find-mode-fold
+  (count uint)
+  (acc {mode-idx: uint, mode-count: uint, current-idx: uint})
+)
+  (let (
+    (new-idx (+ (get current-idx acc) u1))
+  )
+    (if (> count (get mode-count acc))
+      {mode-idx: (get current-idx acc), mode-count: count, current-idx: new-idx}
+      (merge acc {current-idx: new-idx})
+    )
+  )
+)
+
+(define-private (increment-freq (freq-list (list 19 uint)) (decimals uint))
+  ;; Increment count at index=decimals in frequency list
+  (if (> decimals u18)
+    freq-list
+    (let (
+      (current-count (default-to u0 (element-at? freq-list decimals)))
+      (new-count (+ current-count u1))
+    )
+      (default-to freq-list (replace-at? freq-list decimals new-count))
+    )
+  )
+)
 
 (define-private (is-authorized (agent-id uint) (caller principal))
   (let (
@@ -618,7 +707,7 @@
 
 (define-private (summary-fold
   (client principal)
-  (acc {agent-id: uint, tag1: (optional (string-utf8 64)), tag2: (optional (string-utf8 64)), count: uint, total: int, client: principal, last-idx: uint})
+  (acc {agent-id: uint, tag1: (string-utf8 64), tag2: (string-utf8 64), count: uint, wad-sum: int, decimal-freq: (list 19 uint), client: principal, last-idx: uint})
 )
   (let (
     (agent-id (get agent-id acc))
@@ -633,7 +722,7 @@
 
 (define-private (summary-index-fold
   (idx uint)
-  (acc {agent-id: uint, tag1: (optional (string-utf8 64)), tag2: (optional (string-utf8 64)), count: uint, total: int, client: principal, last-idx: uint})
+  (acc {agent-id: uint, tag1: (string-utf8 64), tag2: (string-utf8 64), count: uint, wad-sum: int, decimal-freq: (list 19 uint), client: principal, last-idx: uint})
 )
   (if (> idx (get last-idx acc))
     acc
@@ -644,18 +733,29 @@
         (if (get is-revoked fb)
           acc
           (let (
-            (matches-tag1 (match (get tag1 acc) filter-tag1
-              (is-eq filter-tag1 (get tag1 fb))
-              true))
-            (matches-tag2 (match (get tag2 acc) filter-tag2
-              (is-eq filter-tag2 (get tag2 fb))
-              true))
+            ;; Tag matching: empty string means no filter
+            (matches-tag1 (if (is-eq (get tag1 acc) u"")
+              true
+              (is-eq (get tag1 acc) (get tag1 fb))
+            ))
+            (matches-tag2 (if (is-eq (get tag2 acc) u"")
+              true
+              (is-eq (get tag2 acc) (get tag2 fb))
+            ))
           )
             (if (and matches-tag1 matches-tag2)
-              (merge acc {
-                count: (+ (get count acc) u1),
-                total: (+ (get total acc) (get value fb))
-              })
+              (let (
+                ;; Normalize value to WAD (18 decimals)
+                (normalized-value (normalize-to-wad (get value fb) (get value-decimals fb)))
+                ;; Increment frequency count for this decimals value
+                (new-freq (increment-freq (get decimal-freq acc) (get value-decimals fb)))
+              )
+                (merge acc {
+                  count: (+ (get count acc) u1),
+                  wad-sum: (+ (get wad-sum acc) normalized-value),
+                  decimal-freq: new-freq
+                })
+              )
               acc
             )
           )

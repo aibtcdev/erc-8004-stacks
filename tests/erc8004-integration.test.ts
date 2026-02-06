@@ -26,13 +26,6 @@ function hashFromString(s: string): Uint8Array {
   return hash;
 }
 
-function tagFromString(s: string): Uint8Array {
-  const tag = new Uint8Array(32);
-  const bytes = new TextEncoder().encode(s);
-  tag.set(bytes.slice(0, 32));
-  return tag;
-}
-
 describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
   it("complete flow: register agent → approve client → give feedback → read feedback", () => {
     // Step 1: Register an agent
@@ -281,7 +274,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
 
     // Step 4: Validator responds
     const responseHash = bufferCV(hashFromString("validation-response-1"));
-    const tag = bufferCV(tagFromString("security-audit"));
+    const tag = stringUtf8CV("security-audit");
     const responseResult = simnet.callPublicFn(
       "validation-registry",
       "validation-response",
@@ -306,6 +299,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
     status = statusResult.result as any;
     expect(status.value.value.response.value).toBe(1n); // Approved
     expect(status.value.value.tag).toStrictEqual(tag);
+    expect(status.value.value["has-response"]).toStrictEqual(Cl.bool(true));
   });
 
   it("complete flow: multiple validations → get summary", () => {
@@ -313,8 +307,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
     simnet.callPublicFn("identity-registry", "register", [], agentOwner);
     const agentId = 0n;
 
-    const tag = bufferCV(tagFromString("audit"));
-    const emptyTag = Cl.stringUtf8("");
+    const tag = stringUtf8CV("audit");
 
     // Request 3 validations
     for (let i = 1; i <= 3; i++) {
@@ -357,6 +350,76 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
     );
     const validations = validationsResult.result as any;
     expect(validations.value.value.length).toBe(3);
+  });
+
+  it("progressive validation: validator updates response multiple times", () => {
+    // Register agent
+    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    const agentId = 0n;
+
+    // Request validation
+    const requestHash = bufferCV(hashFromString("progressive-validation"));
+    simnet.callPublicFn(
+      "validation-registry",
+      "validation-request",
+      [principalCV(validator), uintCV(agentId), stringUtf8CV("ipfs://request"), requestHash],
+      agentOwner
+    );
+
+    // Step 1: Preliminary response (50% confidence, preliminary tag)
+    const responseHash1 = bufferCV(hashFromString("response-1"));
+    simnet.callPublicFn(
+      "validation-registry",
+      "validation-response",
+      [requestHash, uintCV(50n), stringUtf8CV("ipfs://preliminary"), responseHash1, stringUtf8CV("preliminary")],
+      validator
+    );
+
+    // Check status after preliminary
+    let statusResult = simnet.callReadOnlyFn(
+      "validation-registry",
+      "get-validation-status",
+      [requestHash],
+      deployer
+    );
+    let status = statusResult.result as any;
+    expect(status.value.value.response.value).toBe(50n);
+    expect(status.value.value.tag).toStrictEqual(stringUtf8CV("preliminary"));
+    expect(status.value.value["has-response"]).toStrictEqual(Cl.bool(true));
+
+    // Step 2: Final response (85% confidence, final tag)
+    const responseHash2 = bufferCV(hashFromString("response-2"));
+    const finalResult = simnet.callPublicFn(
+      "validation-registry",
+      "validation-response",
+      [requestHash, uintCV(85n), stringUtf8CV("ipfs://final"), responseHash2, stringUtf8CV("final")],
+      validator
+    );
+    expect(finalResult.result).toBeOk(Cl.bool(true));
+
+    // Check final status - should have updated values
+    statusResult = simnet.callReadOnlyFn(
+      "validation-registry",
+      "get-validation-status",
+      [requestHash],
+      deployer
+    );
+    status = statusResult.result as any;
+    expect(status.value.value.response.value).toBe(85n);
+    expect(status.value.value.tag).toStrictEqual(stringUtf8CV("final"));
+    expect(status.value.value["response-hash"]).toStrictEqual(responseHash2);
+    expect(status.value.value["has-response"]).toStrictEqual(Cl.bool(true));
+
+    // Verify summary reflects final score
+    const summaryResult = simnet.callReadOnlyFn(
+      "validation-registry",
+      "get-summary",
+      [uintCV(agentId), noneCV(), noneCV()],
+      deployer
+    );
+    const summary = summaryResult.result as any;
+    expect(summary.value.count.value).toBe(1n);
+    expect(summary.value["avg-response"].value).toBe(85n); // Final value, not average of 50 and 85
   });
 });
 
@@ -654,8 +717,8 @@ describe("ERC-8004 Integration: Version Consistency", () => {
       [],
       deployer
     );
-    // Phase 2+: reputation registry still at 1.0.0
-    expect(reputationVersion.result).toStrictEqual(stringUtf8CV("1.0.0"));
+    // Phase 5: reputation registry updated to 2.0.0
+    expect(reputationVersion.result).toStrictEqual(stringUtf8CV("2.0.0"));
 
     const validationVersion = simnet.callReadOnlyFn(
       "validation-registry",
@@ -663,8 +726,8 @@ describe("ERC-8004 Integration: Version Consistency", () => {
       [],
       deployer
     );
-    // Phase 5: validation registry still at 1.0.0
-    expect(validationVersion.result).toStrictEqual(stringUtf8CV("1.0.0"));
+    // Phase 5: validation registry updated to 2.0.0
+    expect(validationVersion.result).toStrictEqual(stringUtf8CV("2.0.0"));
   });
 
   it("reputation and validation registries reference identity-registry", () => {

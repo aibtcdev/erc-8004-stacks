@@ -179,7 +179,7 @@
 (define-read-only (get-last-token-id)
   (let ((current-id (var-get next-agent-id)))
     (if (is-eq current-id u0)
-      (err ERR_AGENT_NOT_FOUND)
+      ERR_AGENT_NOT_FOUND
       (ok (- current-id u1))
     )
   )

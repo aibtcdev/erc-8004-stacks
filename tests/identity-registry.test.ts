@@ -235,8 +235,149 @@ describe("identity-registry public functions", () => {
   });
 });
 
+describe("identity-registry SIP-009 NFT functions", () => {
+  it("get-last-token-id() returns correct ID after registrations", () => {
+    // arrange - register 3 agents
+    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry", "register", [], address2);
+
+    // act
+    const { result } = simnet.callReadOnlyFn(
+      "identity-registry",
+      "get-last-token-id",
+      [],
+      deployer
+    );
+
+    // assert
+    expect(result).toBeOk(uintCV(2n));
+  });
+
+  it("get-last-token-id() handles no registrations", () => {
+    // act
+    const { result } = simnet.callReadOnlyFn(
+      "identity-registry",
+      "get-last-token-id",
+      [],
+      deployer
+    );
+
+    // assert - should error when no tokens minted
+    expect(result).toBeErr(uintCV(1001n));
+  });
+
+  it("get-token-uri() returns URI wrapped in ok", () => {
+    // arrange
+    const testUri = stringUtf8CV("ipfs://test-uri");
+    simnet.callPublicFn(
+      "identity-registry",
+      "register-with-uri",
+      [testUri],
+      address1
+    );
+
+    // act
+    const { result } = simnet.callReadOnlyFn(
+      "identity-registry",
+      "get-token-uri",
+      [uintCV(0n)],
+      deployer
+    );
+
+    // assert - SIP-009 wraps in ok
+    expect(result).toBeOk(Cl.some(testUri));
+  });
+
+  it("get-owner() returns owner principal wrapped in ok", () => {
+    // arrange
+    simnet.callPublicFn("identity-registry", "register", [], address1);
+
+    // act
+    const { result } = simnet.callReadOnlyFn(
+      "identity-registry",
+      "get-owner",
+      [uintCV(0n)],
+      deployer
+    );
+
+    // assert - SIP-009 wraps in ok
+    expect(result).toBeOk(Cl.some(Cl.principal(address1)));
+  });
+
+  it("transfer() allows owner to transfer NFT", () => {
+    // arrange
+    simnet.callPublicFn("identity-registry", "register", [], address1);
+
+    // act
+    const { result } = simnet.callPublicFn(
+      "identity-registry",
+      "transfer",
+      [uintCV(0n), principalCV(address1), principalCV(address2)],
+      address1
+    );
+
+    // assert
+    expect(result).toBeOk(Cl.bool(true));
+
+    // verify new owner
+    const ownerResult = simnet.callReadOnlyFn(
+      "identity-registry",
+      "get-owner",
+      [uintCV(0n)],
+      deployer
+    );
+    expect(ownerResult.result).toBeOk(Cl.some(Cl.principal(address2)));
+  });
+
+  it("transfer() fails when sender is not tx-sender", () => {
+    // arrange
+    simnet.callPublicFn("identity-registry", "register", [], address1);
+
+    // act - address1 tries to transfer but claims sender is address2
+    const { result } = simnet.callPublicFn(
+      "identity-registry",
+      "transfer",
+      [uintCV(0n), principalCV(address2), principalCV(address1)],
+      address1
+    );
+
+    // assert
+    expect(result).toBeErr(uintCV(1005n)); // ERR_INVALID_SENDER
+  });
+
+  it("transfer() fails when sender is not owner", () => {
+    // arrange
+    simnet.callPublicFn("identity-registry", "register", [], address1);
+
+    // act - address2 tries to transfer address1's NFT
+    const { result } = simnet.callPublicFn(
+      "identity-registry",
+      "transfer",
+      [uintCV(0n), principalCV(address2), principalCV(address1)],
+      address2
+    );
+
+    // assert
+    expect(result).toBeErr(uintCV(1000n)); // ERR_NOT_AUTHORIZED
+  });
+
+  it("transfer() fails for non-existent token", () => {
+    // act
+    const { result } = simnet.callPublicFn(
+      "identity-registry",
+      "transfer",
+      [uintCV(999n), principalCV(address1), principalCV(address2)],
+      address1
+    );
+
+    // assert
+    expect(result).toBeErr(uintCV(1001n)); // ERR_AGENT_NOT_FOUND
+  });
+});
+
 describe("identity-registry read-only functions", () => {
-  it("owner-of() returns the owner of an agent", () => {
+  it("owner-of() returns the owner of an agent (legacy)", () => {
     // arrange
     simnet.callPublicFn("identity-registry", "register", [], address1);
 

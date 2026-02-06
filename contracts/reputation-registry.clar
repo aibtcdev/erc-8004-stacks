@@ -14,13 +14,14 @@
 (define-constant ERR_AGENT_NOT_FOUND (err u3001))
 (define-constant ERR_FEEDBACK_NOT_FOUND (err u3002))
 (define-constant ERR_ALREADY_REVOKED (err u3003))
-(define-constant ERR_INVALID_SCORE (err u3004))
+(define-constant ERR_INVALID_VALUE (err u3004))
 (define-constant ERR_SELF_FEEDBACK (err u3005))
 (define-constant ERR_INVALID_INDEX (err u3006))
 (define-constant ERR_SIGNATURE_INVALID (err u3007))
 (define-constant ERR_AUTH_EXPIRED (err u3008))
 (define-constant ERR_INDEX_LIMIT_EXCEEDED (err u3009))
 (define-constant ERR_EMPTY_URI (err u3010))
+(define-constant ERR_INVALID_DECIMALS (err u3011))
 (define-constant VERSION u"1.0.0")
 
 ;; SIP-018 constants
@@ -35,7 +36,7 @@
 ;; data maps
 (define-map feedback
   {agent-id: uint, client: principal, index: uint}
-  {score: uint, tag1: (buff 32), tag2: (buff 32), is-revoked: bool}
+  {value: int, value-decimals: uint, tag1: (buff 32), tag2: (buff 32), is-revoked: bool}
 )
 
 (define-map last-index {agent-id: uint, client: principal} uint)
@@ -76,7 +77,8 @@
 
 (define-public (give-feedback
   (agent-id uint)
-  (score uint)
+  (value int)
+  (value-decimals uint)
   (tag1 (buff 32))
   (tag2 (buff 32))
   (feedback-uri (string-utf8 512))
@@ -86,20 +88,16 @@
     (caller contract-caller)
     (current-index (default-to u0 (map-get? last-index {agent-id: agent-id, client: caller})))
     (next-index (+ current-index u1))
-    (approved-limit (default-to u0 (map-get? approved-clients {agent-id: agent-id, client: caller})))
   )
-    ;; Verify score is valid
-    (asserts! (<= score u100) ERR_INVALID_SCORE)
-    ;; Verify agent exists
-    (asserts! (is-some (contract-call? .identity-registry owner-of agent-id)) ERR_AGENT_NOT_FOUND)
-    ;; Verify caller is NOT owner or operator (prevent self-feedback)
-    (asserts! (not (is-authorized agent-id caller)) ERR_SELF_FEEDBACK)
-    ;; Verify caller has on-chain approval with sufficient limit
-    (asserts! (>= approved-limit next-index) ERR_INDEX_LIMIT_EXCEEDED)
+    ;; Verify valueDecimals is valid (0-18)
+    (asserts! (<= value-decimals u18) ERR_INVALID_DECIMALS)
+    ;; Verify agent exists and caller is NOT authorized (prevent self-feedback)
+    ;; Using is-authorized-or-owner also validates agent existence
+    (asserts! (is-err (contract-call? .identity-registry is-authorized-or-owner caller agent-id)) ERR_SELF_FEEDBACK)
     ;; Store feedback
     (map-set feedback
       {agent-id: agent-id, client: caller, index: next-index}
-      {score: score, tag1: tag1, tag2: tag2, is-revoked: false}
+      {value: value, value-decimals: value-decimals, tag1: tag1, tag2: tag2, is-revoked: false}
     )
     ;; Update last index
     (map-set last-index {agent-id: agent-id, client: caller} next-index)
@@ -121,7 +119,68 @@
         agent-id: agent-id,
         client: caller,
         index: next-index,
-        score: score,
+        value: value,
+        value-decimals: value-decimals,
+        tag1: tag1,
+        tag2: tag2,
+        feedback-uri: feedback-uri,
+        feedback-hash: feedback-hash
+      }
+    })
+    (ok next-index)
+  )
+)
+
+(define-public (give-feedback-approved
+  (agent-id uint)
+  (value int)
+  (value-decimals uint)
+  (tag1 (buff 32))
+  (tag2 (buff 32))
+  (feedback-uri (string-utf8 512))
+  (feedback-hash (buff 32))
+)
+  (let (
+    (caller contract-caller)
+    (current-index (default-to u0 (map-get? last-index {agent-id: agent-id, client: caller})))
+    (next-index (+ current-index u1))
+    (approved-limit (default-to u0 (map-get? approved-clients {agent-id: agent-id, client: caller})))
+  )
+    ;; Verify valueDecimals is valid (0-18)
+    (asserts! (<= value-decimals u18) ERR_INVALID_DECIMALS)
+    ;; Verify agent exists
+    (asserts! (is-some (contract-call? .identity-registry owner-of agent-id)) ERR_AGENT_NOT_FOUND)
+    ;; Verify caller is NOT owner or operator (prevent self-feedback)
+    (asserts! (not (is-authorized agent-id caller)) ERR_SELF_FEEDBACK)
+    ;; Verify caller has on-chain approval with sufficient limit
+    (asserts! (>= approved-limit next-index) ERR_INDEX_LIMIT_EXCEEDED)
+    ;; Store feedback
+    (map-set feedback
+      {agent-id: agent-id, client: caller, index: next-index}
+      {value: value, value-decimals: value-decimals, tag1: tag1, tag2: tag2, is-revoked: false}
+    )
+    ;; Update last index
+    (map-set last-index {agent-id: agent-id, client: caller} next-index)
+    ;; Track client if new
+    (if (not (default-to false (map-get? client-exists {agent-id: agent-id, client: caller})))
+      (begin
+        (map-set client-exists {agent-id: agent-id, client: caller} true)
+        (map-set clients {agent-id: agent-id}
+          (unwrap! (as-max-len?
+            (append (default-to (list) (map-get? clients {agent-id: agent-id})) caller)
+            u1024) ERR_NOT_AUTHORIZED))
+      )
+      true
+    )
+    ;; Emit event
+    (print {
+      notification: "reputation-registry/NewFeedback",
+      payload: {
+        agent-id: agent-id,
+        client: caller,
+        index: next-index,
+        value: value,
+        value-decimals: value-decimals,
         tag1: tag1,
         tag2: tag2,
         feedback-uri: feedback-uri,
@@ -134,7 +193,8 @@
 
 (define-public (give-feedback-signed
   (agent-id uint)
-  (score uint)
+  (value int)
+  (value-decimals uint)
   (tag1 (buff 32))
   (tag2 (buff 32))
   (feedback-uri (string-utf8 512))
@@ -149,8 +209,8 @@
     (current-index (default-to u0 (map-get? last-index {agent-id: agent-id, client: caller})))
     (next-index (+ current-index u1))
   )
-    ;; Verify score is valid
-    (asserts! (<= score u100) ERR_INVALID_SCORE)
+    ;; Verify valueDecimals is valid (0-18)
+    (asserts! (<= value-decimals u18) ERR_INVALID_DECIMALS)
     ;; Verify agent exists
     (asserts! (is-some (contract-call? .identity-registry owner-of agent-id)) ERR_AGENT_NOT_FOUND)
     ;; Verify caller is NOT owner or operator (prevent self-feedback)
@@ -166,7 +226,7 @@
     ;; Store feedback
     (map-set feedback
       {agent-id: agent-id, client: caller, index: next-index}
-      {score: score, tag1: tag1, tag2: tag2, is-revoked: false}
+      {value: value, value-decimals: value-decimals, tag1: tag1, tag2: tag2, is-revoked: false}
     )
     ;; Update last index
     (map-set last-index {agent-id: agent-id, client: caller} next-index)
@@ -188,7 +248,8 @@
         agent-id: agent-id,
         client: caller,
         index: next-index,
-        score: score,
+        value: value,
+        value-decimals: value-decimals,
         tag1: tag1,
         tag2: tag2,
         feedback-uri: feedback-uri,
@@ -289,14 +350,15 @@
 )
   (let (
     (client-list (default-to (default-to (list) (map-get? clients {agent-id: agent-id})) opt-clients))
-    (result (fold summary-fold client-list {agent-id: agent-id, tag1: opt-tag1, tag2: opt-tag2, count: u0, total: u0, client: tx-sender, last-idx: u0}))
+    (result (fold summary-fold client-list {agent-id: agent-id, tag1: opt-tag1, tag2: opt-tag2, count: u0, total: 0, client: tx-sender, last-idx: u0}))
   )
     {
       count: (get count result),
-      average-score: (if (> (get count result) u0)
-        (/ (get total result) (get count result))
-        u0
-      )
+      summary-value: (if (> (get count result) u0)
+        (/ (get total result) (to-int (get count result)))
+        0
+      ),
+      summary-value-decimals: u0
     }
   )
 )
@@ -440,7 +502,7 @@
     include-revoked: bool,
     client: principal,
     last-idx: uint,
-    items: (list 50 {client: principal, index: uint, score: uint, tag1: (buff 32), tag2: (buff 32), is-revoked: bool})
+    items: (list 50 {client: principal, index: uint, value: int, value-decimals: uint, tag1: (buff 32), tag2: (buff 32), is-revoked: bool})
   })
 )
   (let (
@@ -463,7 +525,7 @@
     include-revoked: bool,
     client: principal,
     last-idx: uint,
-    items: (list 50 {client: principal, index: uint, score: uint, tag1: (buff 32), tag2: (buff 32), is-revoked: bool})
+    items: (list 50 {client: principal, index: uint, value: int, value-decimals: uint, tag1: (buff 32), tag2: (buff 32), is-revoked: bool})
   })
 )
   (if (or (> idx (get last-idx acc)) (>= (len (get items acc)) u50))
@@ -485,7 +547,8 @@
             (match (as-max-len? (append (get items acc) {
               client: (get client acc),
               index: idx,
-              score: (get score fb),
+              value: (get value fb),
+              value-decimals: (get value-decimals fb),
               tag1: (get tag1 fb),
               tag2: (get tag2 fb),
               is-revoked: (get is-revoked fb)
@@ -504,7 +567,7 @@
 
 (define-private (summary-fold
   (client principal)
-  (acc {agent-id: uint, tag1: (optional (buff 32)), tag2: (optional (buff 32)), count: uint, total: uint, client: principal, last-idx: uint})
+  (acc {agent-id: uint, tag1: (optional (buff 32)), tag2: (optional (buff 32)), count: uint, total: int, client: principal, last-idx: uint})
 )
   (let (
     (agent-id (get agent-id acc))
@@ -519,7 +582,7 @@
 
 (define-private (summary-index-fold
   (idx uint)
-  (acc {agent-id: uint, tag1: (optional (buff 32)), tag2: (optional (buff 32)), count: uint, total: uint, client: principal, last-idx: uint})
+  (acc {agent-id: uint, tag1: (optional (buff 32)), tag2: (optional (buff 32)), count: uint, total: int, client: principal, last-idx: uint})
 )
   (if (> idx (get last-idx acc))
     acc
@@ -540,7 +603,7 @@
             (if (and matches-tag1 matches-tag2)
               (merge acc {
                 count: (+ (get count acc) u1),
-                total: (+ (get total acc) (get score fb))
+                total: (+ (get total acc) (get value fb))
               })
               acc
             )

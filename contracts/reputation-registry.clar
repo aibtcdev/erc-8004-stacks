@@ -5,6 +5,7 @@
 ;; auth: All authorization checks use tx-sender. Contract principals acting as owners/operators must use as-contract.
 
 ;; traits
+(impl-trait .reputation-registry-trait.reputation-registry-trait)
 ;;
 
 ;; token definitions

@@ -13,6 +13,8 @@
     (transfer (uint principal principal) (response bool uint))
   )
 )
+
+(impl-trait .identity-registry-trait.identity-registry-trait)
 ;;
 
 ;; token definitions

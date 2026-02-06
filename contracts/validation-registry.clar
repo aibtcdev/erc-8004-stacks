@@ -5,6 +5,7 @@
 ;; auth: All authorization checks use tx-sender. Contract principals acting as validators must use as-contract.
 
 ;; traits
+(impl-trait .validation-registry-trait.validation-registry-trait)
 ;;
 
 ;; token definitions

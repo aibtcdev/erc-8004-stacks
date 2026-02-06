@@ -15,12 +15,12 @@
     (give-feedback-approved (uint int uint (string-utf8 64) (string-utf8 64) (string-utf8 512) (string-utf8 512) (buff 32)) (response uint uint))
 
     ;; Feedback submission (signed authorization)
-    (give-feedback-signed (uint principal int uint (string-utf8 64) (string-utf8 64) (string-utf8 512) (string-utf8 512) (buff 32) uint (buff 65)) (response uint uint))
+    (give-feedback-signed (uint int uint (string-utf8 64) (string-utf8 64) (string-utf8 512) (string-utf8 512) (buff 32) principal uint uint (buff 65)) (response uint uint))
 
     ;; Feedback management
     (revoke-feedback (uint uint) (response bool uint))
 
     ;; Response management
-    (append-response (uint principal uint principal uint) (response bool uint))
+    (append-response (uint principal uint (string-utf8 512) (buff 32)) (response bool uint))
   )
 )

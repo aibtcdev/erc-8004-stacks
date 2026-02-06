@@ -601,11 +601,18 @@ describe("identity-registry agent-wallet feature", () => {
     expect(result).toBeNone();
   });
 
-  it("set-agent-wallet-direct() allows new wallet to claim by calling directly", () => {
+  it("set-agent-wallet-direct() allows approved operator to set wallet", () => {
     // arrange
     simnet.callPublicFn("identity-registry", "register", [], address1);
+    // approve address2 as operator
+    simnet.callPublicFn(
+      "identity-registry",
+      "set-approval-for-all",
+      [uintCV(0n), principalCV(address2), Cl.bool(true)],
+      address1
+    );
 
-    // act - address2 calls to set itself as wallet
+    // act - address2 (approved operator) calls to set itself as wallet
     const { result } = simnet.callPublicFn(
       "identity-registry",
       "set-agent-wallet-direct",
@@ -622,6 +629,22 @@ describe("identity-registry agent-wallet feature", () => {
       deployer
     );
     expect(wallet).toBeSome(principalCV(address2));
+  });
+
+  it("set-agent-wallet-direct() rejects unauthorized caller", () => {
+    // arrange
+    simnet.callPublicFn("identity-registry", "register", [], address1);
+
+    // act - address2 (not owner/operator) tries to set wallet
+    const { result } = simnet.callPublicFn(
+      "identity-registry",
+      "set-agent-wallet-direct",
+      [uintCV(0n)],
+      address2
+    );
+
+    // assert - ERR_NOT_AUTHORIZED is u1000
+    expect(result).toBeErr(uintCV(1000n));
   });
 
   it("set-agent-wallet-direct() rejects if caller is already the wallet", () => {

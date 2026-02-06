@@ -763,7 +763,13 @@ describe("ERC-8004 Integration: v2.0.0 NFT and Agent Wallet Features", () => {
     );
     expect(walletResult.result).toBeSome(Cl.principal(agentOwner));
 
-    // Set wallet via tx-sender path (client1 proves ownership)
+    // Approve client1 as operator, then set wallet via tx-sender path
+    simnet.callPublicFn(
+      "identity-registry",
+      "set-approval-for-all",
+      [uintCV(agentId), principalCV(client1), Cl.bool(true)],
+      agentOwner
+    );
     const directResult = simnet.callPublicFn(
       "identity-registry",
       "set-agent-wallet-direct",

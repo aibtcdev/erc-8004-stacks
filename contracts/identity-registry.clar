@@ -1,5 +1,5 @@
 ;; title: identity-registry
-;; version: 1.0.0
+;; version: 2.0.0
 ;; summary: ERC-8004 Identity Registry - Registers agent identities with sequential IDs, URIs, and metadata.
 ;; description: Compliant with ERC-8004 spec. Owner or approved operators can update URI/metadata. Single deployment per chain.
 
@@ -34,8 +34,9 @@
 (define-constant MAX_METADATA_ENTRIES u10)
 (define-constant MAX_DEADLINE_DELAY u1500) ;; ~5 min at 200s blocks
 (define-constant RESERVED_KEY_AGENT_WALLET u"agentWallet")
-(define-constant DOMAIN_NAME u"identity-registry")
-(define-constant DOMAIN_VERSION u"2.0.0")
+(define-constant SIP018_PREFIX 0x534950303138)
+(define-constant DOMAIN_NAME "identity-registry")
+(define-constant DOMAIN_VERSION "2.0.0")
 (define-constant VERSION u"2.0.0")
 ;;
 
@@ -107,14 +108,14 @@
 
 (define-public (set-agent-uri (agent-id uint) (new-uri (string-utf8 512)))
   (begin 
-    (asserts! (is-authorized agent-id contract-caller) ERR_NOT_AUTHORIZED)
+    (asserts! (is-authorized agent-id tx-sender) ERR_NOT_AUTHORIZED)
     (map-set uris {agent-id: agent-id} new-uri)
     (print {
       notification: "identity-registry/UriUpdated",
       payload: {
         agent-id: agent-id,
         new-uri: new-uri,
-        updated-by: contract-caller
+        updated-by: tx-sender
       }
     })
     (ok true)
@@ -123,7 +124,7 @@
 
 (define-public (set-metadata (agent-id uint) (key (string-utf8 128)) (value (buff 512)))
   (begin
-    (asserts! (is-authorized agent-id contract-caller) ERR_NOT_AUTHORIZED)
+    (asserts! (is-authorized agent-id tx-sender) ERR_NOT_AUTHORIZED)
     (asserts! (not (is-eq key RESERVED_KEY_AGENT_WALLET)) ERR_RESERVED_KEY)
     (map-set metadata {agent-id: agent-id, key: key} value)
     (print {
@@ -161,6 +162,8 @@
     (owner (unwrap! (nft-get-owner? agent-identity agent-id) ERR_AGENT_NOT_FOUND))
     (current-wallet-opt (map-get? agent-wallets {agent-id: agent-id}))
   )
+    ;; Check caller is authorized (owner or approved operator)
+    (asserts! (is-authorized agent-id tx-sender) ERR_NOT_AUTHORIZED)
     ;; Check caller is not already the wallet
     (match current-wallet-opt current-wallet
       (asserts! (not (is-eq tx-sender current-wallet)) ERR_WALLET_ALREADY_SET)
@@ -191,7 +194,7 @@
     (current-height stacks-block-height)
   )
     ;; Authorization check
-    (asserts! (is-authorized agent-id contract-caller) ERR_NOT_AUTHORIZED)
+    (asserts! (is-authorized agent-id tx-sender) ERR_NOT_AUTHORIZED)
     ;; Deadline checks
     (asserts! (<= current-height deadline) ERR_EXPIRED_SIGNATURE)
     (asserts! (<= deadline (+ current-height MAX_DEADLINE_DELAY)) ERR_EXPIRED_SIGNATURE)
@@ -233,7 +236,7 @@
   (let (
     (owner (unwrap! (nft-get-owner? agent-identity agent-id) ERR_AGENT_NOT_FOUND))
   )
-    (asserts! (is-authorized agent-id contract-caller) ERR_NOT_AUTHORIZED)
+    (asserts! (is-authorized agent-id tx-sender) ERR_NOT_AUTHORIZED)
     (map-delete agent-wallets {agent-id: agent-id})
     (print {
       notification: "identity-registry/MetadataSet",
@@ -372,14 +375,13 @@
 )
 
 (define-private (hash-sip018-message
-  (domain {name: (string-utf8 64), version: (string-utf8 64), chain-id: uint})
+  (domain {name: (string-ascii 64), version: (string-ascii 64), chain-id: uint})
   (message {agent-id: uint, new-wallet: principal, owner: principal, deadline: uint})
 )
-  (sha256 (concat
-    (concat
-      (unwrap-panic (to-consensus-buff? domain))
-      (unwrap-panic (to-consensus-buff? message))
-    )
-    0x00
-  ))
+  (let (
+    (domain-hash (sha256 (unwrap-panic (to-consensus-buff? domain))))
+    (structured-data-hash (sha256 (unwrap-panic (to-consensus-buff? message))))
+  )
+    (sha256 (concat SIP018_PREFIX (concat domain-hash structured-data-hash)))
+  )
 )

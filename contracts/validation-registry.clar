@@ -1,5 +1,5 @@
 ;; title: validation-registry
-;; version: 1.0.0
+;; version: 2.0.0
 ;; summary: ERC-8004 Validation Registry - Manages validation requests and responses for agents.
 ;; description: Allows agent owners to request validation from validators, who respond with scores.
 
@@ -49,9 +49,9 @@
   (request-hash (buff 32))
 )
   (let (
-    (caller contract-caller)
+    (caller tx-sender)
   )
-    ;; Check validator is not zero address (can't check for zero in Clarity, but can check it's not caller)
+    ;; Check validator is not the caller (prevents self-validation)
     (asserts! (not (is-eq validator caller)) ERR_INVALID_VALIDATOR)
     ;; Check caller is authorized (owner or approved operator)
     (asserts! (is-authorized agent-id caller) ERR_NOT_AUTHORIZED)
@@ -107,7 +107,7 @@
 )
   (let (
     (validation (unwrap! (map-get? validations {request-hash: request-hash}) ERR_VALIDATION_NOT_FOUND))
-    (caller contract-caller)
+    (caller tx-sender)
   )
     ;; Check caller is the validator
     (asserts! (is-eq caller (get validator validation)) ERR_NOT_AUTHORIZED)

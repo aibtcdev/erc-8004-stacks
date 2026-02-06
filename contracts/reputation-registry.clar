@@ -1,5 +1,5 @@
 ;; title: reputation-registry
-;; version: 1.0.0
+;; version: 2.0.0
 ;; summary: ERC-8004 Reputation Registry - Client feedback for agents with SIP-018 and on-chain authorization.
 ;; description: Allows clients to give feedback on agents. Supports both on-chain approval and SIP-018 signed authorization.
 
@@ -56,7 +56,7 @@
 
 (define-public (approve-client (agent-id uint) (client principal) (index-limit uint))
   (let (
-    (caller contract-caller)
+    (caller tx-sender)
   )
     ;; Verify caller is owner or operator
     (asserts! (is-authorized agent-id caller) ERR_NOT_AUTHORIZED)
@@ -87,7 +87,7 @@
   (feedback-hash (buff 32))
 )
   (let (
-    (caller contract-caller)
+    (caller tx-sender)
     (current-index (default-to u0 (map-get? last-index {agent-id: agent-id, client: caller})))
     (next-index (+ current-index u1))
     (auth-check (contract-call? .identity-registry is-authorized-or-owner caller agent-id))
@@ -147,7 +147,7 @@
   (feedback-hash (buff 32))
 )
   (let (
-    (caller contract-caller)
+    (caller tx-sender)
     (current-index (default-to u0 (map-get? last-index {agent-id: agent-id, client: caller})))
     (next-index (+ current-index u1))
     (approved-limit (default-to u0 (map-get? approved-clients {agent-id: agent-id, client: caller})))
@@ -213,7 +213,7 @@
   (signature (buff 65))
 )
   (let (
-    (caller contract-caller)
+    (caller tx-sender)
     (current-index (default-to u0 (map-get? last-index {agent-id: agent-id, client: caller})))
     (next-index (+ current-index u1))
   )
@@ -271,7 +271,7 @@
 
 (define-public (revoke-feedback (agent-id uint) (index uint))
   (let (
-    (caller contract-caller)
+    (caller tx-sender)
     (fb (unwrap! (map-get? feedback {agent-id: agent-id, client: caller, index: index}) ERR_FEEDBACK_NOT_FOUND))
   )
     ;; Verify index is valid (> 0)
@@ -304,7 +304,7 @@
   (response-hash (buff 32))
 )
   (let (
-    (responder contract-caller)
+    (responder tx-sender)
     (client-last-idx (default-to u0 (map-get? last-index {agent-id: agent-id, client: client})))
   )
     ;; Verify index is valid

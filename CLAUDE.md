@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ERC-8004 Stacks Contracts - Clarity smart contracts implementing the ERC-8004 agent identity/reputation/validation protocol for Stacks blockchain. Mirrors the [Solidity reference implementation](https://github.com/erc8004-org/erc8004-contracts).
 
-**Current Status**: All three registries ✅ complete with 73 tests passing. Deployed to testnet.
+**Current Status**: All three registries ✅ complete with 125 tests passing. v2.0.0 spec-compliant. Deployed to testnet.
 
 ## Commands
 
@@ -42,9 +42,17 @@ Three contracts implementing ERC-8004 spec as chain singletons:
 
 | Contract | Purpose | Status |
 |----------|---------|--------|
-| `identity-registry.clar` | Agent registration (ERC-721 equivalent), URIs, metadata | ✅ Done |
-| `reputation-registry.clar` | Client feedback (score/tags/revoke/response), SIP-018 + on-chain auth | ✅ Done |
-| `validation-registry.clar` | Validator requests/responses | ✅ Done |
+| `identity-registry.clar` | Agent identity as NFT (SIP-009), agent wallet (dual-path auth), metadata | ✅ v2.0.0 |
+| `reputation-registry.clar` | Feedback with signed values (int + decimals), permissionless + self-feedback guard, string tags | ✅ v2.0.0 |
+| `validation-registry.clar` | Progressive validation responses, string tags | ✅ v2.0.0 |
+
+**v2.0.0 Features**:
+- **NFT Identity**: Native Clarity NFT with SIP-009 trait (transfer, get-owner, get-last-token-id, get-token-uri)
+- **Agent Wallet**: Reserved metadata key, auto-set on register, dual-path change (tx-sender or SIP-018), cleared on transfer
+- **Signed Values**: Reputation value is `int` (-2^127 to 2^127-1) with `uint` decimals (0-18), WAD normalization in getSummary
+- **Permissionless Feedback**: No approval required, self-feedback blocked via cross-contract check
+- **String Tags**: UTF-8 tags (64 chars) in both reputation and validation for semantic filtering
+- **Progressive Validation**: Multiple responses per request hash (soft -> hard finality)
 
 **Multichain ID Format**: `stacks:<chainId>:<registry>:<agentId>` (CAIP-2 compliant)
 - Mainnet: `stacks:1`
@@ -53,13 +61,29 @@ Three contracts implementing ERC-8004 spec as chain singletons:
 ## Clarity Conventions
 
 **Error constants** use ranges per contract:
-- Identity Registry: u1000+
-- Validation Registry: u2000+
-- Reputation Registry: u3000+
+- Identity Registry: u1000-u1999
+  - u1000: ERR_NOT_AUTHORIZED
+  - u1001: ERR_AGENT_NOT_FOUND
+  - u1002: ERR_AGENT_ALREADY_EXISTS
+  - u1003: ERR_METADATA_SET_FAILED
+  - u1004: ERR_RESERVED_KEY (agentWallet key protection)
+  - u1005-u1008: Wallet-related errors
+- Validation Registry: u2000-u2999
+- Reputation Registry: u3000-u3999
+  - u3000: ERR_NOT_AUTHORIZED
+  - u3001: ERR_AGENT_NOT_FOUND
+  - u3002: ERR_FEEDBACK_NOT_FOUND
+  - u3003: ERR_ALREADY_REVOKED
+  - u3004: ERR_INVALID_VALUE
+  - u3005: ERR_SELF_FEEDBACK (owner/operator cannot give feedback)
+  - u3011: ERR_INVALID_DECIMALS (must be 0-18)
+  - u3012: ERR_EMPTY_CLIENT_LIST (getSummary requires clients)
 
 ```clarity
 (define-constant ERR_NOT_AUTHORIZED (err u1000))
-(define-constant ERR_AGENT_NOT_FOUND (err u1001))
+(define-constant ERR_RESERVED_KEY (err u1004))
+(define-constant ERR_SELF_FEEDBACK (err u3005))
+(define-constant ERR_INVALID_DECIMALS (err u3011))
 ```
 
 **Events** follow SIP-019 pattern:
@@ -72,9 +96,46 @@ Three contracts implementing ERC-8004 spec as chain singletons:
 
 **Type constraints**:
 - URI: `(string-utf8 512)`
-- Metadata key: `(string-utf8 128)`
+- Metadata key: `(string-utf8 128)` (reserved: `"agentWallet"`)
 - Metadata value: `(buff 512)`
 - Max metadata entries per registration: 10
+- Tags: `(string-utf8 64)` (reputation tag1, tag2; validation tag)
+- Endpoint: `(string-utf8 512)` (emit-only, not stored)
+- Reputation value: `int` (signed 128-bit, -2^127 to 2^127-1)
+- Reputation decimals: `uint` (0-18, for value normalization)
+- Agent wallet: `principal` (auto-set, dual-path change)
+
+**Key function signatures** (v2.0.0):
+```clarity
+;; Identity Registry
+(define-public (register) (response uint uint))
+(define-public (transfer (token-id uint) (sender principal) (recipient principal)) (response bool uint))
+(define-read-only (owner-of (agent-id uint)) (optional principal))
+(define-read-only (get-agent-wallet (agent-id uint)) (optional principal))
+(define-public (set-agent-wallet-direct (agent-id uint)) (response bool uint))
+(define-read-only (is-authorized-or-owner (spender principal) (agent-id uint)) (response bool uint))
+
+;; Reputation Registry
+(define-public (give-feedback
+  (agent-id uint) (value int) (value-decimals uint)
+  (tag1 (string-utf8 64)) (tag2 (string-utf8 64))
+  (endpoint (string-utf8 512)) ;; emit-only
+  (feedback-uri (string-utf8 512)) (feedback-hash (buff 32))
+) (response uint uint))
+
+(define-read-only (get-summary
+  (agent-id uint)
+  (client-addresses (list 200 principal)) ;; required, non-empty
+  (tag1 (string-utf8 64)) (tag2 (string-utf8 64))
+) (response {count: uint, summary-value: int, summary-value-decimals: uint} uint))
+
+;; Validation Registry
+(define-public (validation-response
+  (request-hash (buff 32)) (response uint)
+  (response-uri (string-utf8 512)) (response-hash (buff 32))
+  (tag (string-utf8 64)) ;; single tag
+) (response bool uint))
+```
 
 ## Testing
 

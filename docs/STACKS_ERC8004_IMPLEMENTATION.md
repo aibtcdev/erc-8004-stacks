@@ -19,7 +19,7 @@
 
 ## High-Level Plan
 
-**Status**: All three contracts ✅ Implemented & Tested (59 tests passing).
+**Status**: All three contracts ✅ Implemented & Tested (125 tests passing). **v2.0.0 spec-compliant**.
 
 1. **Three Contracts** (modular, each refs `identity-registry` via cross-calls):
    | Contract | Status | Purpose | Key Maps/Functions |
@@ -40,32 +40,55 @@
 
 ## Implementation Status
 
-**All contracts complete with 73 tests passing.**
+**All contracts complete with 125 tests passing. v2.0.0 spec-compliant.**
 
-| Component | Status | Tests |
-|-----------|--------|-------|
-| `identity-registry.clar` | ✅ Done | 18 tests |
-| `validation-registry.clar` | ✅ Done | 18 tests |
-| `reputation-registry.clar` | ✅ Done | 23 tests |
-| Integration tests | ✅ Done | 14 tests |
+| Component | Status | Tests | Version |
+|-----------|--------|-------|---------|
+| `identity-registry.clar` | ✅ Done | 35 tests | 2.0.0 |
+| `validation-registry.clar` | ✅ Done | 21 tests | 2.0.0 |
+| `reputation-registry.clar` | ✅ Done | 47 tests | 2.0.0 |
+| Integration tests | ✅ Done | 22 tests | - |
 
 ### Completed Features
+
+**v2.0.0 Breaking Changes**:
+- **Identity as NFT**: Migrated from manual ownership map to Clarity's native `define-non-fungible-token`
+  - Implements SIP-009 trait: `transfer`, `get-owner`, `get-last-token-id`, `get-token-uri`
+  - Wallet visibility, explorer integration, standard transfer events
+- **Agent Wallet**: Reserved metadata key `"agentWallet"`, auto-set on register
+  - Dual-path change: tx-sender (wallet proves ownership) or SIP-018 (owner provides signature)
+  - Cleared on transfer to prevent stale wallet associations
+- **Signed Values**: Reputation score -> value (int) + value-decimals (uint 0-18)
+  - WAD (18-decimal) normalization in getSummary with mode-based scaling
+  - Supports negative feedback, high-precision ratings
+- **Permissionless Feedback**: No approval required, self-feedback blocked via cross-contract check
+  - Three authorization paths: permissionless, on-chain approval, SIP-018 signed
+  - `is-authorized-or-owner` public read-only for cross-contract checks
+- **String Tags**: Migrated from `(buff 32)` to `(string-utf8 64)` for semantic filtering
+  - Both reputation (tag1, tag2) and validation (single tag)
+  - Empty string = no filter (replaces zero-hash pattern)
+- **Progressive Validation**: Multiple `validation-response` calls per requestHash
+  - Soft -> hard finality workflow (preliminary -> final scores)
+  - No monotonic guard (response can decrease)
 
 **Identity Registry**:
 - Sequential IDs from 0, batch register-full w/ fold
 - Approvals, metadata/URI updates
-- Events via `print`, version support
+- Events via `print`, version 2.0.0
+- Reserved key protection (ERR_RESERVED_KEY u1004)
 
 **Validation Registry**:
 - Cross-contract auth via identity-registry
 - Request/response workflow with hash-based lookup
-- Summary aggregation with tag filtering
+- Summary aggregation with string tag filtering
+- Progressive responses with `has-response` flag
 
 **Reputation Registry**:
-- Dual authorization: SIP-018 signatures + on-chain approval
+- Three authorization paths: permissionless, approved, SIP-018 signed
 - Self-feedback prevention (owner/operator cannot give feedback)
 - Index-based rate limiting via approval limits
-- Revocation, response tracking, summary aggregation
+- Revocation, response tracking, WAD-normalized summary aggregation
+- Endpoint field (emit-only, not stored on-chain)
 
 ## Deployment Status
 
@@ -77,11 +100,29 @@
 | Reputation Registry | [`ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry`](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry?chain=testnet) |
 | Validation Registry | [`ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry`](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry?chain=testnet) |
 
+## v2.0.0 Quest Completion
+
+**Quest**: Upgrade from v1.0.0 to v2.0.0 spec compliance
+**Status**: ✅ Complete (7 phases, 0-6)
+**Result**: All breaking changes implemented, 125 tests passing (up from 73 at v1.0.0)
+
+**Phases**:
+- Phase 0: NFT migration + SIP-009 trait (4 commits, 81 tests)
+- Phase 1: Agent wallet + isAuthorizedOrOwner (2 commits, 101 tests)
+- Phase 2: Value/decimals + permissionless feedback (2 commits, 106 tests)
+- Phase 3: String tags + endpoint + flexible filters (3 commits, 106 tests)
+- Phase 4: WAD normalization + readAllFeedback (2 commits, 114 tests)
+- Phase 5: Validation progressive + version bump (4 commits, 118 tests)
+- Phase 6: Integration tests + docs (1 commit, 125 tests)
+
+**Total**: 18 commits, 52 new tests, all 3 contracts at version 2.0.0
+
 ## Next Steps
 
-1. **Multichain Demo**: Create example agent with cross-chain registration
-2. **PR to ERC-8004 org**: Submit Stacks implementation
-3. **Mainnet Deploy**: Deploy to Stacks mainnet when ready
+1. **Tag v2.0.0**: Git tag for v2.0.0 release
+2. **Multichain Demo**: Create example agent with cross-chain registration
+3. **PR to ERC-8004 org**: Submit Stacks implementation to upstream
+4. **Mainnet Deploy**: Deploy to Stacks mainnet when ready
 
 **Risks/Mitigations**:
 - ✅ Loops: Fixed-size lists, pagination

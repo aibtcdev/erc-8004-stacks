@@ -178,7 +178,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // assert
       const data = result1.result as any;
-      expect(data.value.clients.value).toHaveLength(8); // 8 clients (not including wallet1 who is owner)
+      expect(data.value.clients.value).toHaveLength(7); // 7 clients (wallet1 is owner, can't give feedback to itself)
       expect(data.value.cursor.type).toBe("none"); // fits in one page
     });
 
@@ -247,10 +247,10 @@ describe("Reputation Registry - Stress Tests", () => {
           uintCV(agentId),
           principalCV(wallet2),
           uintCV(feedbackId),
-          principalCV(wallet3),
-          uintCV(1n),
+          stringUtf8CV("http://response1.com"),
+          bufferCV(hashFromString("response-hash-1")),
         ],
-        wallet1
+        wallet3
       );
       simnet.callPublicFn(
         "reputation-registry",
@@ -259,10 +259,10 @@ describe("Reputation Registry - Stress Tests", () => {
           uintCV(agentId),
           principalCV(wallet2),
           uintCV(feedbackId),
-          principalCV(wallet4),
-          uintCV(2n),
+          stringUtf8CV("http://response2.com"),
+          bufferCV(hashFromString("response-hash-2")),
         ],
-        wallet1
+        wallet4
       );
       simnet.callPublicFn(
         "reputation-registry",
@@ -271,10 +271,10 @@ describe("Reputation Registry - Stress Tests", () => {
           uintCV(agentId),
           principalCV(wallet2),
           uintCV(feedbackId),
-          principalCV(wallet5),
-          uintCV(3n),
+          stringUtf8CV("http://response3.com"),
+          bufferCV(hashFromString("response-hash-3")),
         ],
-        wallet1
+        wallet5
       );
 
       // act
@@ -306,10 +306,10 @@ describe("Reputation Registry - Stress Tests", () => {
               uintCV(agentId),
               principalCV(wallet2),
               uintCV(feedbackId),
-              principalCV(wallet),
-              uintCV(BigInt(idx + 1)),
+              stringUtf8CV(`http://response${idx + 1}.com`),
+              bufferCV(hashFromString(`response-hash-${idx + 1}`)),
             ],
-            wallet1
+            wallet
           );
         }
       );
@@ -346,7 +346,6 @@ describe("Reputation Registry - Stress Tests", () => {
         "read-all-feedback",
         [
           uintCV(agentId),
-          noneCV(), // opt-clients
           noneCV(), // opt-tag1
           noneCV(), // opt-tag2
           Cl.bool(false), // include-revoked
@@ -553,7 +552,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // assert
       const data = result.result as any;
-      expect(data.value.count.value).toBe(40n); // 8 clients * 5 feedbacks
+      expect(data.value.count.value).toBe(40n); // 8 wallets * 5 feedbacks each
     });
 
     it("handles high scale (9 clients x 10 feedbacks)", () => {
@@ -589,7 +588,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // assert
       const data = result.result as any;
-      expect(data.value.count.value).toBe(80n); // 8 clients * 10 feedbacks
+      expect(data.value.count.value).toBe(80n); // 8 wallets * 10 feedbacks each
     });
   });
 });

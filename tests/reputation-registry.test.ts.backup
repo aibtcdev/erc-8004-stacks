@@ -101,184 +101,8 @@ describe("reputation-registry on-chain approval", () => {
   });
 });
 
-describe("reputation-registry give-feedback (permissionless)", () => {
-  it("give-feedback() succeeds without approval", () => {
-    // arrange
-    const agentId = registerAgent(address1);
-
-    // act
-    const { result } = simnet.callPublicFn(
-      "reputation-registry",
-      "give-feedback",
-      [
-        uintCV(agentId),
-        Cl.int(85),
-        Cl.uint(0),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
-        stringUtf8CV("ipfs://feedback"),
-        bufferCV(hashFromString("feedback-hash")),
-      ],
-      address2
-    );
-
-    // assert
-    expect(result).toBeOk(uintCV(1n)); // First feedback, index 1
-  });
-
-  it("give-feedback() accepts positive values with decimals", () => {
-    // arrange
-    const agentId = registerAgent(address1);
-
-    // act - value: 9977, decimals: 2 = 99.77
-    const { result } = simnet.callPublicFn(
-      "reputation-registry",
-      "give-feedback",
-      [
-        uintCV(agentId),
-        Cl.int(9977),
-        Cl.uint(2),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
-        stringUtf8CV("ipfs://feedback"),
-        bufferCV(hashFromString("feedback-hash")),
-      ],
-      address2
-    );
-
-    // assert
-    expect(result).toBeOk(uintCV(1n));
-  });
-
-  it("give-feedback() accepts negative values", () => {
-    // arrange
-    const agentId = registerAgent(address1);
-
-    // act - value: -32, decimals: 1 = -3.2
-    const { result } = simnet.callPublicFn(
-      "reputation-registry",
-      "give-feedback",
-      [
-        uintCV(agentId),
-        Cl.int(-32),
-        Cl.uint(1),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
-        stringUtf8CV("ipfs://feedback"),
-        bufferCV(hashFromString("feedback-hash")),
-      ],
-      address2
-    );
-
-    // assert
-    expect(result).toBeOk(uintCV(1n));
-  });
-
-  it("give-feedback() accepts zero value", () => {
-    // arrange
-    const agentId = registerAgent(address1);
-
-    // act
-    const { result } = simnet.callPublicFn(
-      "reputation-registry",
-      "give-feedback",
-      [
-        uintCV(agentId),
-        Cl.int(0),
-        Cl.uint(0),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
-        stringUtf8CV("ipfs://feedback"),
-        bufferCV(hashFromString("feedback-hash")),
-      ],
-      address2
-    );
-
-    // assert
-    expect(result).toBeOk(uintCV(1n));
-  });
-
-  it("give-feedback() fails if valueDecimals > 18", () => {
-    // arrange
-    const agentId = registerAgent(address1);
-
-    // act
-    const { result } = simnet.callPublicFn(
-      "reputation-registry",
-      "give-feedback",
-      [
-        uintCV(agentId),
-        Cl.int(100),
-        Cl.uint(19),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
-        stringUtf8CV("ipfs://feedback"),
-        bufferCV(hashFromString("feedback-hash")),
-      ],
-      address2
-    );
-
-    // assert
-    expect(result).toBeErr(uintCV(3011n)); // ERR_INVALID_DECIMALS
-  });
-
-  it("give-feedback() fails if owner tries self-feedback", () => {
-    // arrange
-    const agentId = registerAgent(address1);
-
-    // act
-    const { result } = simnet.callPublicFn(
-      "reputation-registry",
-      "give-feedback",
-      [
-        uintCV(agentId),
-        Cl.int(100),
-        Cl.uint(0),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
-        stringUtf8CV("ipfs://feedback"),
-        bufferCV(hashFromString("feedback-hash")),
-      ],
-      address1
-    );
-
-    // assert
-    expect(result).toBeErr(uintCV(3005n)); // ERR_SELF_FEEDBACK
-  });
-
-  it("give-feedback() fails if approved operator tries to give feedback", () => {
-    // arrange
-    const agentId = registerAgent(address1);
-    simnet.callPublicFn(
-      "identity-registry",
-      "set-approval-for-all",
-      [uintCV(agentId), principalCV(address3), Cl.bool(true)],
-      address1
-    );
-
-    // act
-    const { result } = simnet.callPublicFn(
-      "reputation-registry",
-      "give-feedback",
-      [
-        uintCV(agentId),
-        Cl.int(100),
-        Cl.uint(0),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
-        stringUtf8CV("ipfs://feedback"),
-        bufferCV(hashFromString("feedback-hash")),
-      ],
-      address3
-    );
-
-    // assert
-    expect(result).toBeErr(uintCV(3005n)); // ERR_SELF_FEEDBACK
-  });
-});
-
-describe("reputation-registry give-feedback-approved (on-chain approval)", () => {
-  it("give-feedback-approved() succeeds with on-chain approval", () => {
+describe("reputation-registry give-feedback", () => {
+  it("give-feedback() succeeds with on-chain approval", () => {
     // arrange
     const agentId = registerAgent(address1);
     simnet.callPublicFn(
@@ -291,11 +115,10 @@ describe("reputation-registry give-feedback-approved (on-chain approval)", () =>
     // act
     const { result } = simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback-approved",
+      "give-feedback",
       [
         uintCV(agentId),
-        Cl.int(85),
-        Cl.uint(0),
+        uintCV(85n),
         bufferCV(hashFromString("quality")),
         bufferCV(hashFromString("responsive")),
         stringUtf8CV("ipfs://feedback"),
@@ -308,18 +131,17 @@ describe("reputation-registry give-feedback-approved (on-chain approval)", () =>
     expect(result).toBeOk(uintCV(1n)); // First feedback, index 1
   });
 
-  it("give-feedback-approved() fails without approval", () => {
+  it("give-feedback() fails without approval", () => {
     // arrange
     const agentId = registerAgent(address1);
 
     // act
     const { result } = simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback-approved",
+      "give-feedback",
       [
         uintCV(agentId),
-        Cl.int(85),
-        Cl.uint(0),
+        uintCV(85n),
         bufferCV(hashFromString("quality")),
         bufferCV(hashFromString("responsive")),
         stringUtf8CV("ipfs://feedback"),
@@ -332,15 +154,72 @@ describe("reputation-registry give-feedback-approved (on-chain approval)", () =>
     expect(result).toBeErr(uintCV(3009n)); // ERR_INDEX_LIMIT_EXCEEDED
   });
 
-  it("give-feedback-approved() fails for non-existent agent", () => {
+  it("give-feedback() fails if owner tries self-feedback", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    simnet.callPublicFn(
+      "reputation-registry",
+      "approve-client",
+      [uintCV(agentId), principalCV(address1), uintCV(5n)],
+      address1
+    );
+
     // act
     const { result } = simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback-approved",
+      "give-feedback",
+      [
+        uintCV(agentId),
+        uintCV(100n),
+        bufferCV(hashFromString("quality")),
+        bufferCV(hashFromString("responsive")),
+        stringUtf8CV("ipfs://feedback"),
+        bufferCV(hashFromString("feedback-hash")),
+      ],
+      address1
+    );
+
+    // assert
+    expect(result).toBeErr(uintCV(3005n)); // ERR_SELF_FEEDBACK
+  });
+
+  it("give-feedback() fails if score > 100", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    simnet.callPublicFn(
+      "reputation-registry",
+      "approve-client",
+      [uintCV(agentId), principalCV(address2), uintCV(5n)],
+      address1
+    );
+
+    // act
+    const { result } = simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [
+        uintCV(agentId),
+        uintCV(101n),
+        bufferCV(hashFromString("quality")),
+        bufferCV(hashFromString("responsive")),
+        stringUtf8CV("ipfs://feedback"),
+        bufferCV(hashFromString("feedback-hash")),
+      ],
+      address2
+    );
+
+    // assert
+    expect(result).toBeErr(uintCV(3004n)); // ERR_INVALID_SCORE
+  });
+
+  it("give-feedback() fails for non-existent agent", () => {
+    // act
+    const { result } = simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
       [
         uintCV(999n),
-        Cl.int(85),
-        Cl.uint(0),
+        uintCV(85n),
         bufferCV(hashFromString("quality")),
         bufferCV(hashFromString("responsive")),
         stringUtf8CV("ipfs://feedback"),
@@ -353,7 +232,7 @@ describe("reputation-registry give-feedback-approved (on-chain approval)", () =>
     expect(result).toBeErr(uintCV(3001n)); // ERR_AGENT_NOT_FOUND
   });
 
-  it("give-feedback-approved() respects index limit", () => {
+  it("give-feedback() respects index limit", () => {
     // arrange
     const agentId = registerAgent(address1);
     simnet.callPublicFn(
@@ -369,22 +248,22 @@ describe("reputation-registry give-feedback-approved (on-chain approval)", () =>
 
     simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback-approved",
-      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("uri1"), hash],
+      "give-feedback",
+      [uintCV(agentId), uintCV(80n), tag, tag, stringUtf8CV("uri1"), hash],
       address2
     );
     simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback-approved",
-      [uintCV(agentId), Cl.int(90), Cl.uint(0), tag, tag, stringUtf8CV("uri2"), hash],
+      "give-feedback",
+      [uintCV(agentId), uintCV(90n), tag, tag, stringUtf8CV("uri2"), hash],
       address2
     );
 
     // Third should fail (limit is 2)
     const { result } = simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback-approved",
-      [uintCV(agentId), Cl.int(100), Cl.uint(0), tag, tag, stringUtf8CV("uri3"), hash],
+      "give-feedback",
+      [uintCV(agentId), uintCV(100n), tag, tag, stringUtf8CV("uri3"), hash],
       address2
     );
 
@@ -399,11 +278,16 @@ describe("reputation-registry revoke-feedback", () => {
     const agentId = registerAgent(address1);
     simnet.callPublicFn(
       "reputation-registry",
+      "approve-client",
+      [uintCV(agentId), principalCV(address2), uintCV(5n)],
+      address1
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
       "give-feedback",
       [
         uintCV(agentId),
-        Cl.int(85),
-        Cl.uint(0),
+        uintCV(85n),
         bufferCV(hashFromString("quality")),
         bufferCV(hashFromString("responsive")),
         stringUtf8CV("ipfs://feedback"),
@@ -438,11 +322,16 @@ describe("reputation-registry revoke-feedback", () => {
     const agentId = registerAgent(address1);
     simnet.callPublicFn(
       "reputation-registry",
+      "approve-client",
+      [uintCV(agentId), principalCV(address2), uintCV(5n)],
+      address1
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
       "give-feedback",
       [
         uintCV(agentId),
-        Cl.int(85),
-        Cl.uint(0),
+        uintCV(85n),
         bufferCV(hashFromString("quality")),
         bufferCV(hashFromString("responsive")),
         stringUtf8CV("ipfs://feedback"),
@@ -468,11 +357,16 @@ describe("reputation-registry revoke-feedback", () => {
     const agentId = registerAgent(address1);
     simnet.callPublicFn(
       "reputation-registry",
+      "approve-client",
+      [uintCV(agentId), principalCV(address2), uintCV(5n)],
+      address1
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
       "give-feedback",
       [
         uintCV(agentId),
-        Cl.int(85),
-        Cl.uint(0),
+        uintCV(85n),
         bufferCV(hashFromString("quality")),
         bufferCV(hashFromString("responsive")),
         stringUtf8CV("ipfs://feedback"),
@@ -506,11 +400,16 @@ describe("reputation-registry append-response", () => {
     const agentId = registerAgent(address1);
     simnet.callPublicFn(
       "reputation-registry",
+      "approve-client",
+      [uintCV(agentId), principalCV(address2), uintCV(5n)],
+      address1
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
       "give-feedback",
       [
         uintCV(agentId),
-        Cl.int(85),
-        Cl.uint(0),
+        uintCV(85n),
         bufferCV(hashFromString("quality")),
         bufferCV(hashFromString("responsive")),
         stringUtf8CV("ipfs://feedback"),
@@ -551,11 +450,16 @@ describe("reputation-registry append-response", () => {
     const agentId = registerAgent(address1);
     simnet.callPublicFn(
       "reputation-registry",
+      "approve-client",
+      [uintCV(agentId), principalCV(address2), uintCV(5n)],
+      address1
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
       "give-feedback",
       [
         uintCV(agentId),
-        Cl.int(85),
-        Cl.uint(0),
+        uintCV(85n),
         bufferCV(hashFromString("quality")),
         bufferCV(hashFromString("responsive")),
         stringUtf8CV("ipfs://feedback"),
@@ -627,11 +531,16 @@ describe("reputation-registry append-response", () => {
     const agentId = registerAgent(address1);
     simnet.callPublicFn(
       "reputation-registry",
+      "approve-client",
+      [uintCV(agentId), principalCV(address2), uintCV(5n)],
+      address1
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
       "give-feedback",
       [
         uintCV(agentId),
-        Cl.int(85),
-        Cl.uint(0),
+        uintCV(85n),
         bufferCV(hashFromString("quality")),
         bufferCV(hashFromString("responsive")),
         stringUtf8CV("ipfs://feedback"),
@@ -660,9 +569,15 @@ describe("reputation-registry append-response", () => {
 });
 
 describe("reputation-registry read-only functions", () => {
-  it("read-feedback() returns feedback data with value and decimals", () => {
+  it("read-feedback() returns feedback data", () => {
     // arrange
     const agentId = registerAgent(address1);
+    simnet.callPublicFn(
+      "reputation-registry",
+      "approve-client",
+      [uintCV(agentId), principalCV(address2), uintCV(5n)],
+      address1
+    );
     const tag1 = bufferCV(hashFromString("quality"));
     const tag2 = bufferCV(hashFromString("responsive"));
     simnet.callPublicFn(
@@ -670,8 +585,7 @@ describe("reputation-registry read-only functions", () => {
       "give-feedback",
       [
         uintCV(agentId),
-        Cl.int(9977),
-        Cl.uint(2),
+        uintCV(85n),
         tag1,
         tag2,
         stringUtf8CV("ipfs://feedback"),
@@ -690,26 +604,31 @@ describe("reputation-registry read-only functions", () => {
 
     // assert
     const fb = (result as any).value.value;
-    expect(fb.value).toStrictEqual(Cl.int(9977));
-    expect(fb["value-decimals"]).toStrictEqual(Cl.uint(2));
+    expect(fb.score).toStrictEqual(uintCV(85n));
     expect(fb["is-revoked"]).toStrictEqual(Cl.bool(false));
   });
 
   it("get-last-index() returns correct index", () => {
     // arrange
     const agentId = registerAgent(address1);
+    simnet.callPublicFn(
+      "reputation-registry",
+      "approve-client",
+      [uintCV(agentId), principalCV(address2), uintCV(5n)],
+      address1
+    );
     const tag = bufferCV(hashFromString("tag"));
     const hash = bufferCV(hashFromString("hash"));
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback",
-      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("uri1"), hash],
+      [uintCV(agentId), uintCV(80n), tag, tag, stringUtf8CV("uri1"), hash],
       address2
     );
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback",
-      [uintCV(agentId), Cl.int(90), Cl.uint(0), tag, tag, stringUtf8CV("uri2"), hash],
+      [uintCV(agentId), uintCV(90n), tag, tag, stringUtf8CV("uri2"), hash],
       address2
     );
 
@@ -728,18 +647,30 @@ describe("reputation-registry read-only functions", () => {
   it("get-clients() returns list of clients", () => {
     // arrange
     const agentId = registerAgent(address1);
+    simnet.callPublicFn(
+      "reputation-registry",
+      "approve-client",
+      [uintCV(agentId), principalCV(address2), uintCV(5n)],
+      address1
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
+      "approve-client",
+      [uintCV(agentId), principalCV(address3), uintCV(5n)],
+      address1
+    );
     const tag = bufferCV(hashFromString("tag"));
     const hash = bufferCV(hashFromString("hash"));
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback",
-      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("uri1"), hash],
+      [uintCV(agentId), uintCV(80n), tag, tag, stringUtf8CV("uri1"), hash],
       address2
     );
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback",
-      [uintCV(agentId), Cl.int(90), Cl.uint(0), tag, tag, stringUtf8CV("uri2"), hash],
+      [uintCV(agentId), uintCV(90n), tag, tag, stringUtf8CV("uri2"), hash],
       address3
     );
 
@@ -757,22 +688,34 @@ describe("reputation-registry read-only functions", () => {
     );
   });
 
-  it("get-summary() returns count and summary-value", () => {
+  it("get-summary() returns count and average", () => {
     // arrange
     const agentId = registerAgent(address1);
+    simnet.callPublicFn(
+      "reputation-registry",
+      "approve-client",
+      [uintCV(agentId), principalCV(address2), uintCV(5n)],
+      address1
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
+      "approve-client",
+      [uintCV(agentId), principalCV(address3), uintCV(5n)],
+      address1
+    );
     const tag = bufferCV(hashFromString("tag"));
     const hash = bufferCV(hashFromString("hash"));
     // Two feedbacks: 80 and 100, average = 90
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback",
-      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("uri1"), hash],
+      [uintCV(agentId), uintCV(80n), tag, tag, stringUtf8CV("uri1"), hash],
       address2
     );
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback",
-      [uintCV(agentId), Cl.int(100), Cl.uint(0), tag, tag, stringUtf8CV("uri2"), hash],
+      [uintCV(agentId), uintCV(100n), tag, tag, stringUtf8CV("uri2"), hash],
       address3
     );
 
@@ -788,8 +731,7 @@ describe("reputation-registry read-only functions", () => {
     expect(result).toStrictEqual(
       Cl.tuple({
         count: uintCV(2n),
-        "summary-value": Cl.int(90),
-        "summary-value-decimals": Cl.uint(0),
+        "average-score": uintCV(90n),
       })
     );
   });
@@ -797,18 +739,24 @@ describe("reputation-registry read-only functions", () => {
   it("get-summary() excludes revoked feedback", () => {
     // arrange
     const agentId = registerAgent(address1);
+    simnet.callPublicFn(
+      "reputation-registry",
+      "approve-client",
+      [uintCV(agentId), principalCV(address2), uintCV(5n)],
+      address1
+    );
     const tag = bufferCV(hashFromString("tag"));
     const hash = bufferCV(hashFromString("hash"));
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback",
-      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("uri1"), hash],
+      [uintCV(agentId), uintCV(80n), tag, tag, stringUtf8CV("uri1"), hash],
       address2
     );
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback",
-      [uintCV(agentId), Cl.int(100), Cl.uint(0), tag, tag, stringUtf8CV("uri2"), hash],
+      [uintCV(agentId), uintCV(100n), tag, tag, stringUtf8CV("uri2"), hash],
       address2
     );
     // Revoke first feedback
@@ -831,8 +779,7 @@ describe("reputation-registry read-only functions", () => {
     expect(result).toStrictEqual(
       Cl.tuple({
         count: uintCV(1n),
-        "summary-value": Cl.int(100),
-        "summary-value-decimals": Cl.uint(0),
+        "average-score": uintCV(100n),
       })
     );
   });

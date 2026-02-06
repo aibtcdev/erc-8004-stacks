@@ -70,10 +70,11 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
 
     const feedbackResult = simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback",
+      "give-feedback-approved",
       [
         uintCV(agentId),
-        uintCV(85n), // score
+        Cl.int(85), // value
+        Cl.uint(0), // value-decimals
         tag1,
         tag2,
         stringUtf8CV("ipfs://feedback-uri"),
@@ -92,7 +93,8 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     );
     expect(readResult.result).toBeSome(
       Cl.tuple({
-        score: uintCV(85n),
+        value: Cl.int(85),
+        "value-decimals": Cl.uint(0),
         tag1: tag1,
         tag2: tag2,
         "is-revoked": Cl.bool(false),
@@ -108,7 +110,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     );
     const summary = summaryResult.result as any;
     expect(summary.value.count.value).toBe(1n);
-    expect(summary.value["average-score"].value).toBe(85n);
+    expect(summary.value["summary-value"].value).toBe(85n);
   });
 
   it("complete flow: register → multiple feedbacks → revoke → summary excludes revoked", () => {
@@ -130,20 +132,20 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     // Give 3 feedbacks
     simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback",
-      [uintCV(agentId), uintCV(80n), emptyTag, emptyTag, stringUtf8CV("uri1"), hash],
+      "give-feedback-approved",
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("uri1"), hash],
       client1
     );
     simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback",
-      [uintCV(agentId), uintCV(90n), emptyTag, emptyTag, stringUtf8CV("uri2"), hash],
+      "give-feedback-approved",
+      [uintCV(agentId), Cl.int(90), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("uri2"), hash],
       client1
     );
     simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback",
-      [uintCV(agentId), uintCV(100n), emptyTag, emptyTag, stringUtf8CV("uri3"), hash],
+      "give-feedback-approved",
+      [uintCV(agentId), Cl.int(100), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("uri3"), hash],
       client1
     );
 
@@ -156,7 +158,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     );
     let summary = summaryResult.result as any;
     expect(summary.value.count.value).toBe(3n);
-    expect(summary.value["average-score"].value).toBe(90n);
+    expect(summary.value["summary-value"].value).toBe(90n);
 
     // Revoke feedback #2
     const revokeResult = simnet.callPublicFn(
@@ -176,7 +178,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     );
     summary = summaryResult.result as any;
     expect(summary.value.count.value).toBe(2n);
-    expect(summary.value["average-score"].value).toBe(90n);
+    expect(summary.value["summary-value"].value).toBe(90n);
   });
 
   it("complete flow: register → feedback → append response", () => {
@@ -196,8 +198,8 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     const hash = bufferCV(hashFromString("hash"));
     simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback",
-      [uintCV(agentId), uintCV(50n), emptyTag, emptyTag, stringUtf8CV("bad-service"), hash],
+      "give-feedback-approved",
+      [uintCV(agentId), Cl.int(50), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("bad-service"), hash],
       client1
     );
 
@@ -396,8 +398,8 @@ describe("ERC-8004 Integration: Operator Permissions", () => {
     const hash = bufferCV(hashFromString("hash"));
     const feedbackResult = simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback",
-      [uintCV(agentId), uintCV(95n), emptyTag, emptyTag, stringUtf8CV("great"), hash],
+      "give-feedback-approved",
+      [uintCV(agentId), Cl.int(95), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("great"), hash],
       client1
     );
     expect(feedbackResult.result).toBeOk(uintCV(1n));
@@ -454,8 +456,8 @@ describe("ERC-8004 Integration: Cross-Contract Authorization", () => {
     const hash = bufferCV(hashFromString("self-feedback"));
     const selfFeedback = simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback",
-      [uintCV(agentId), uintCV(100n), emptyTag, emptyTag, stringUtf8CV("great"), hash],
+      "give-feedback-approved",
+      [uintCV(agentId), Cl.int(100), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("great"), hash],
       agentOwner
     );
     expect(selfFeedback.result).toBeErr(uintCV(3005n)); // ERR_SELF_FEEDBACK
@@ -489,22 +491,22 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
     // Client 1 gives 2 feedbacks
     simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback",
-      [uintCV(agentId), uintCV(80n), tag1, emptyTag, stringUtf8CV("c1-1"), hash],
+      "give-feedback-approved",
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag1, emptyTag, stringUtf8CV("c1-1"), hash],
       client1
     );
     simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback",
-      [uintCV(agentId), uintCV(90n), tag1, emptyTag, stringUtf8CV("c1-2"), hash],
+      "give-feedback-approved",
+      [uintCV(agentId), Cl.int(90), Cl.uint(0), tag1, emptyTag, stringUtf8CV("c1-2"), hash],
       client1
     );
 
     // Client 2 gives 1 feedback
     simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback",
-      [uintCV(agentId), uintCV(70n), emptyTag, emptyTag, stringUtf8CV("c2-1"), hash],
+      "give-feedback-approved",
+      [uintCV(agentId), Cl.int(70), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("c2-1"), hash],
       client2
     );
 
@@ -540,20 +542,20 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
     // Give feedbacks with different tags
     simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback",
-      [uintCV(agentId), uintCV(80n), qualityTag, emptyTag, stringUtf8CV("q1"), hash],
+      "give-feedback-approved",
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), qualityTag, emptyTag, stringUtf8CV("q1"), hash],
       client1
     );
     simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback",
-      [uintCV(agentId), uintCV(90n), speedTag, emptyTag, stringUtf8CV("s1"), hash],
+      "give-feedback-approved",
+      [uintCV(agentId), Cl.int(90), Cl.uint(0), speedTag, emptyTag, stringUtf8CV("s1"), hash],
       client1
     );
     simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback",
-      [uintCV(agentId), uintCV(85n), qualityTag, emptyTag, stringUtf8CV("q2"), hash],
+      "give-feedback-approved",
+      [uintCV(agentId), Cl.int(85), Cl.uint(0), qualityTag, emptyTag, stringUtf8CV("q2"), hash],
       client1
     );
 
@@ -587,20 +589,20 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
     // Give 3 feedbacks
     simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback",
-      [uintCV(agentId), uintCV(80n), emptyTag, emptyTag, stringUtf8CV("f1"), hash],
+      "give-feedback-approved",
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("f1"), hash],
       client1
     );
     simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback",
-      [uintCV(agentId), uintCV(90n), emptyTag, emptyTag, stringUtf8CV("f2"), hash],
+      "give-feedback-approved",
+      [uintCV(agentId), Cl.int(90), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("f2"), hash],
       client1
     );
     simnet.callPublicFn(
       "reputation-registry",
-      "give-feedback",
-      [uintCV(agentId), uintCV(100n), emptyTag, emptyTag, stringUtf8CV("f3"), hash],
+      "give-feedback-approved",
+      [uintCV(agentId), Cl.int(100), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("f3"), hash],
       client1
     );
 

@@ -289,6 +289,150 @@ describe("validation-registry public functions", () => {
     // Result is (some {tuple}): .value is the TupleCV, .value.value is the fields object
     expect((status as any).value.value.response).toStrictEqual(uintCV(100n));
   });
+
+  it("validation-response() progressive validation with different tags", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    const requestHash = bufferCV(hashFromString("progressive-tags"));
+    const requestUri = stringUtf8CV("ipfs://request-uri");
+    const responseHash = bufferCV(hashFromString("response-hash"));
+
+    simnet.callPublicFn(
+      "validation-registry",
+      "validation-request",
+      [principalCV(address2), uintCV(agentId), requestUri, requestHash],
+      address1
+    );
+
+    // act - preliminary response
+    simnet.callPublicFn(
+      "validation-registry",
+      "validation-response",
+      [requestHash, uintCV(50n), stringUtf8CV("r1"), responseHash, stringUtf8CV("preliminary")],
+      address2
+    );
+
+    // act - final response with different tag
+    const { result } = simnet.callPublicFn(
+      "validation-registry",
+      "validation-response",
+      [requestHash, uintCV(85n), stringUtf8CV("r2"), responseHash, stringUtf8CV("final")],
+      address2
+    );
+
+    // assert
+    expect(result).toBeOk(Cl.bool(true));
+
+    // verify final tag is stored
+    const status = simnet.callReadOnlyFn(
+      "validation-registry",
+      "get-validation-status",
+      [requestHash],
+      deployer
+    ).result;
+    const resultValue = (status as any).value.value;
+    expect(resultValue.response).toStrictEqual(uintCV(85n));
+    expect(resultValue.tag).toStrictEqual(stringUtf8CV("final"));
+    expect(resultValue["has-response"]).toStrictEqual(Cl.bool(true));
+  });
+
+  it("validation-response() allows response to decrease (no monotonic guard)", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    const requestHash = bufferCV(hashFromString("decrease-response"));
+    const requestUri = stringUtf8CV("ipfs://request-uri");
+    const responseHash = bufferCV(hashFromString("response-hash"));
+    const tag = stringUtf8CV("verified");
+
+    simnet.callPublicFn(
+      "validation-registry",
+      "validation-request",
+      [principalCV(address2), uintCV(agentId), requestUri, requestHash],
+      address1
+    );
+
+    // act - high response first
+    simnet.callPublicFn(
+      "validation-registry",
+      "validation-response",
+      [requestHash, uintCV(100n), stringUtf8CV("r1"), responseHash, tag],
+      address2
+    );
+
+    // act - decrease response
+    const { result } = simnet.callPublicFn(
+      "validation-registry",
+      "validation-response",
+      [requestHash, uintCV(50n), stringUtf8CV("r2"), responseHash, tag],
+      address2
+    );
+
+    // assert - decrease is allowed
+    expect(result).toBeOk(Cl.bool(true));
+
+    // verify decreased value
+    const status = simnet.callReadOnlyFn(
+      "validation-registry",
+      "get-validation-status",
+      [requestHash],
+      deployer
+    ).result;
+    expect((status as any).value.value.response).toStrictEqual(uintCV(50n));
+  });
+
+  it("get-summary() only counts validations with has-response: true", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    const hash1 = hashFromString("no-response-1");
+    const hash2 = hashFromString("with-response-2");
+    const hash3 = hashFromString("no-response-3");
+    const tag = stringUtf8CV("verified");
+    const responseHash = bufferCV(hashFromString("resp"));
+
+    // Create 3 validation requests
+    simnet.callPublicFn(
+      "validation-registry",
+      "validation-request",
+      [principalCV(address2), uintCV(agentId), stringUtf8CV("uri1"), bufferCV(hash1)],
+      address1
+    );
+    simnet.callPublicFn(
+      "validation-registry",
+      "validation-request",
+      [principalCV(address3), uintCV(agentId), stringUtf8CV("uri2"), bufferCV(hash2)],
+      address1
+    );
+    simnet.callPublicFn(
+      "validation-registry",
+      "validation-request",
+      [principalCV(address2), uintCV(agentId), stringUtf8CV("uri3"), bufferCV(hash3)],
+      address1
+    );
+
+    // Only respond to hash2
+    simnet.callPublicFn(
+      "validation-registry",
+      "validation-response",
+      [bufferCV(hash2), uintCV(90n), stringUtf8CV("r2"), responseHash, tag],
+      address3
+    );
+
+    // act
+    const { result } = simnet.callReadOnlyFn(
+      "validation-registry",
+      "get-summary",
+      [uintCV(agentId), noneCV(), noneCV()],
+      deployer
+    );
+
+    // assert - only counts the one with response
+    expect(result).toStrictEqual(
+      Cl.tuple({
+        count: uintCV(1n),
+        "avg-response": uintCV(90n),
+      })
+    );
+  });
 });
 
 describe("validation-registry read-only functions", () => {

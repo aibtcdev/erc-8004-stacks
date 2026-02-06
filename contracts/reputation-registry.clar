@@ -398,8 +398,8 @@
 (define-read-only (get-summary
   (agent-id uint)
   (client-addresses (list 200 principal))
-  (tag1 (string-utf8 64))
-  (tag2 (string-utf8 64))
+  (opt-tag1 (optional (string-utf8 64)))
+  (opt-tag2 (optional (string-utf8 64)))
   (opt-cursor (optional uint))
 )
   (let (
@@ -414,8 +414,8 @@
           client-addresses
           {
             agent-id: agent-id,
-            tag1: tag1,
-            tag2: tag2,
+            opt-tag1: opt-tag1,
+            opt-tag2: opt-tag2,
             count: u0,
             wad-sum: 0,
             decimal-freq: init-freq,
@@ -792,7 +792,7 @@
 
 (define-private (summary-fold
   (client principal)
-  (acc {agent-id: uint, tag1: (string-utf8 64), tag2: (string-utf8 64), count: uint, wad-sum: int, decimal-freq: (list 19 uint), client: principal, last-idx: uint, cursor-offset: uint, has-more: bool})
+  (acc {agent-id: uint, opt-tag1: (optional (string-utf8 64)), opt-tag2: (optional (string-utf8 64)), count: uint, wad-sum: int, decimal-freq: (list 19 uint), client: principal, last-idx: uint, cursor-offset: uint, has-more: bool})
 )
   (let (
     (agent-id (get agent-id acc))
@@ -808,7 +808,7 @@
 
 (define-private (summary-index-fold
   (idx uint)
-  (acc {agent-id: uint, tag1: (string-utf8 64), tag2: (string-utf8 64), count: uint, wad-sum: int, decimal-freq: (list 19 uint), client: principal, last-idx: uint, cursor-offset: uint, has-more: bool})
+  (acc {agent-id: uint, opt-tag1: (optional (string-utf8 64)), opt-tag2: (optional (string-utf8 64)), count: uint, wad-sum: int, decimal-freq: (list 19 uint), client: principal, last-idx: uint, cursor-offset: uint, has-more: bool})
 )
   (let ((actual-idx (+ idx (get cursor-offset acc))))
     (if (> actual-idx (get last-idx acc))
@@ -820,13 +820,13 @@
           (if (get is-revoked fb)
             acc
             (let (
-              (matches-tag1 (if (is-eq (get tag1 acc) u"")
+              (matches-tag1 (match (get opt-tag1 acc)
+                filter-tag1 (is-eq filter-tag1 (get tag1 fb))
                 true
-                (is-eq (get tag1 acc) (get tag1 fb))
               ))
-              (matches-tag2 (if (is-eq (get tag2 acc) u"")
+              (matches-tag2 (match (get opt-tag2 acc)
+                filter-tag2 (is-eq filter-tag2 (get tag2 fb))
                 true
-                (is-eq (get tag2 acc) (get tag2 fb))
               ))
             )
               (if (and matches-tag1 matches-tag2)

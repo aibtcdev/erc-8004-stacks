@@ -799,7 +799,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3)]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3)]), noneCV(), noneCV(), noneCV()],
       deployer
     );
 
@@ -843,7 +843,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2)]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
+      [uintCV(agentId), Cl.list([Cl.principal(address2)]), noneCV(), noneCV(), noneCV()],
       deployer
     );
 
@@ -874,7 +874,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
+      [uintCV(agentId), Cl.list([]), noneCV(), noneCV(), noneCV()],
       deployer
     );
 
@@ -918,7 +918,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), noneCV(), noneCV(), noneCV()],
       deployer
     );
 
@@ -962,7 +962,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), noneCV(), noneCV(), noneCV()],
       deployer
     );
 
@@ -1013,7 +1013,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), noneCV(), noneCV(), noneCV()],
       deployer
     );
 
@@ -1058,7 +1058,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), noneCV(), noneCV(), noneCV()],
       deployer
     );
 
@@ -1105,7 +1105,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), Cl.stringUtf8(""), Cl.stringUtf8(""), noneCV()],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), noneCV(), noneCV(), noneCV()],
       deployer
     );
 
@@ -1147,7 +1147,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), tag1, tag2, noneCV()],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), someCV(tag1), someCV(tag2), noneCV()],
       deployer
     );
 
@@ -1173,7 +1173,7 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(address2)]), nonMatchingTag, nonMatchingTag, noneCV()],
+      [uintCV(agentId), Cl.list([Cl.principal(address2)]), someCV(nonMatchingTag), someCV(nonMatchingTag), noneCV()],
       deployer
     );
 

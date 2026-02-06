@@ -582,7 +582,7 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
     const result = simnet.callReadOnlyFn(
       "reputation-registry",
       "read-all-feedback",
-      [uintCV(agentId), noneCV(), noneCV(), noneCV(), Cl.bool(false), noneCV()],
+      [uintCV(agentId), noneCV(), noneCV(), Cl.bool(false), noneCV()],
       deployer
     );
     const items = result.result as any;
@@ -631,7 +631,7 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
     const result = simnet.callReadOnlyFn(
       "reputation-registry",
       "read-all-feedback",
-      [uintCV(agentId), noneCV(), someCV(qualityTag), noneCV(), Cl.bool(false), noneCV()],
+      [uintCV(agentId), someCV(qualityTag), noneCV(), Cl.bool(false), noneCV()],
       deployer
     );
     const items = result.result as any;
@@ -686,7 +686,7 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
     let result = simnet.callReadOnlyFn(
       "reputation-registry",
       "read-all-feedback",
-      [uintCV(agentId), noneCV(), noneCV(), noneCV(), Cl.bool(false), noneCV()],
+      [uintCV(agentId), noneCV(), noneCV(), Cl.bool(false), noneCV()],
       deployer
     );
     let items = result.result as any;
@@ -696,11 +696,55 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
     result = simnet.callReadOnlyFn(
       "reputation-registry",
       "read-all-feedback",
-      [uintCV(agentId), noneCV(), noneCV(), noneCV(), Cl.bool(true), noneCV()],
+      [uintCV(agentId), noneCV(), noneCV(), Cl.bool(true), noneCV()],
       deployer
     );
     items = result.result as any;
     expect(items.value.items.value.length).toBe(3);
+  });
+
+  it("get-agent-feedback-count returns total feedback count", () => {
+    // Register agent
+    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    const agentId = 0n;
+
+    // Initial count should be 0
+    let countResult = simnet.callReadOnlyFn(
+      "reputation-registry",
+      "get-agent-feedback-count",
+      [uintCV(agentId)],
+      deployer
+    );
+    expect(countResult.result).toStrictEqual(uintCV(0n));
+
+    // Approve client and give 3 feedbacks
+    simnet.callPublicFn(
+      "reputation-registry",
+      "approve-client",
+      [uintCV(agentId), principalCV(client1), uintCV(10n)],
+      agentOwner
+    );
+
+    const emptyTag = Cl.stringUtf8("");
+    const hash = bufferCV(hashFromString("hash"));
+
+    for (let i = 0; i < 3; i++) {
+      simnet.callPublicFn(
+        "reputation-registry",
+        "give-feedback-approved",
+        [uintCV(agentId), Cl.int(80), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV(`f${i}`), hash],
+        client1
+      );
+    }
+
+    // Count should be 3
+    countResult = simnet.callReadOnlyFn(
+      "reputation-registry",
+      "get-agent-feedback-count",
+      [uintCV(agentId)],
+      deployer
+    );
+    expect(countResult.result).toStrictEqual(uintCV(3n));
   });
 });
 

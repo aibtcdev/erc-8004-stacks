@@ -115,7 +115,7 @@
 - Phase 5: Validation progressive + version bump (4 commits, 118 tests)
 - Phase 6: Integration tests + docs (1 commit, 125 tests)
 
-**Total**: 18 commits, 52 new tests, all 3 contracts at version 2.0.0
+**Total**: 21 commits, 52 new tests, all 3 contracts at version 2.0.0
 
 ## Next Steps
 

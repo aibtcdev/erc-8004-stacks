@@ -38,6 +38,11 @@
   u41 u42 u43 u44 u45 u46 u47 u48 u49 u50
 ))
 
+;; Page size for list pagination (read-only functions)
+;; Set to 15 to stay within mainnet 30-read limit (15 items x 2 reads = 30)
+(define-constant PAGE_SIZE u15)
+(define-constant PAGE_INDEX_LIST (list u1 u2 u3 u4 u5 u6 u7 u8 u9 u10 u11 u12 u13 u14 u15))
+
 ;; SIP-018 constants
 (define-constant SIP018_PREFIX 0x534950303138)
 (define-constant DOMAIN_NAME "reputation-registry")
@@ -55,7 +60,9 @@
 
 (define-map last-index {agent-id: uint, client: principal} uint)
 
-(define-map clients {agent-id: uint} (list 1024 principal))
+;; Client tracking with counter+indexed-map pattern
+(define-map client-count {agent-id: uint} uint)
+(define-map client-at-index {agent-id: uint, index: uint} principal)
 (define-map client-exists {agent-id: uint, client: principal} bool)
 
 (define-map approved-clients {agent-id: uint, client: principal} uint)
@@ -120,12 +127,13 @@
     (map-set last-index {agent-id: agent-id, client: caller} next-index)
     ;; Track client if new
     (if (not (default-to false (map-get? client-exists {agent-id: agent-id, client: caller})))
-      (begin
+      (let (
+        (current-count (default-to u0 (map-get? client-count {agent-id: agent-id})))
+        (next-count (+ current-count u1))
+      )
         (map-set client-exists {agent-id: agent-id, client: caller} true)
-        (map-set clients {agent-id: agent-id}
-          (unwrap! (as-max-len?
-            (append (default-to (list) (map-get? clients {agent-id: agent-id})) caller)
-            u1024) ERR_NOT_AUTHORIZED))
+        (map-set client-count {agent-id: agent-id} next-count)
+        (map-set client-at-index {agent-id: agent-id, index: next-count} caller)
       )
       true
     )
@@ -182,12 +190,13 @@
     (map-set last-index {agent-id: agent-id, client: caller} next-index)
     ;; Track client if new
     (if (not (default-to false (map-get? client-exists {agent-id: agent-id, client: caller})))
-      (begin
+      (let (
+        (current-count (default-to u0 (map-get? client-count {agent-id: agent-id})))
+        (next-count (+ current-count u1))
+      )
         (map-set client-exists {agent-id: agent-id, client: caller} true)
-        (map-set clients {agent-id: agent-id}
-          (unwrap! (as-max-len?
-            (append (default-to (list) (map-get? clients {agent-id: agent-id})) caller)
-            u1024) ERR_NOT_AUTHORIZED))
+        (map-set client-count {agent-id: agent-id} next-count)
+        (map-set client-at-index {agent-id: agent-id, index: next-count} caller)
       )
       true
     )
@@ -253,12 +262,13 @@
     (map-set last-index {agent-id: agent-id, client: caller} next-index)
     ;; Track client if new
     (if (not (default-to false (map-get? client-exists {agent-id: agent-id, client: caller})))
-      (begin
+      (let (
+        (current-count (default-to u0 (map-get? client-count {agent-id: agent-id})))
+        (next-count (+ current-count u1))
+      )
         (map-set client-exists {agent-id: agent-id, client: caller} true)
-        (map-set clients {agent-id: agent-id}
-          (unwrap! (as-max-len?
-            (append (default-to (list) (map-get? clients {agent-id: agent-id})) caller)
-            u1024) ERR_NOT_AUTHORIZED))
+        (map-set client-count {agent-id: agent-id} next-count)
+        (map-set client-at-index {agent-id: agent-id, index: next-count} caller)
       )
       true
     )
@@ -424,8 +434,22 @@
   (default-to u0 (map-get? last-index {agent-id: agent-id, client: client}))
 )
 
-(define-read-only (get-clients (agent-id uint))
-  (map-get? clients {agent-id: agent-id})
+(define-read-only (get-clients (agent-id uint) (opt-cursor (optional uint)))
+  (let (
+    (total-count (default-to u0 (map-get? client-count {agent-id: agent-id})))
+    (cursor-offset (default-to u0 opt-cursor))
+    (page-end (+ cursor-offset PAGE_SIZE))
+    (has-more (> total-count page-end))
+    (result (fold build-client-list-fold
+      PAGE_INDEX_LIST
+      {agent-id: agent-id, cursor-offset: cursor-offset, total-count: total-count, clients: (list)}
+    ))
+  )
+    {
+      clients: (get clients result),
+      cursor: (if has-more (some page-end) none)
+    }
+  )
 )
 
 ;; Legacy single response count (kept for backwards compatibility)
@@ -476,7 +500,7 @@
         )
       ;; No client: count across all clients (paginated)
       (let (
-        (client-list (default-to (list) (get-clients agent-id)))
+        (client-list (get clients (get-clients agent-id none)))
         (result (fold count-all-clients-fold
           client-list
           {agent-id: agent-id, opt-feedback-index: opt-feedback-index, opt-responders: opt-responders, total: u0, cursor-offset: cursor-offset, has-more: false}))
@@ -500,7 +524,11 @@
   (opt-cursor (optional uint))
 )
   (let (
-    (client-list (default-to (default-to (list) (map-get? clients {agent-id: agent-id})) opt-clients))
+    ;; If clients not provided, get first page from indexed storage
+    (client-list (match opt-clients
+      provided-clients provided-clients
+      (get clients (get-clients agent-id none))
+    ))
     (cursor-offset (default-to u0 opt-cursor))
     (result (fold read-all-client-fold
       client-list
@@ -881,5 +909,28 @@
 )
   (merge acc {total: (+ (get total acc)
     (get-response-count-single (get agent-id acc) (get client acc) (get index acc) responder))})
+)
+
+;; Helper for building paginated client lists
+(define-private (build-client-list-fold
+  (idx uint)
+  (acc {agent-id: uint, cursor-offset: uint, total-count: uint, clients: (list 15 principal)})
+)
+  (let ((actual-idx (+ idx (get cursor-offset acc))))
+    (if (> actual-idx (get total-count acc))
+      acc
+      (let (
+        (client-opt (map-get? client-at-index {agent-id: (get agent-id acc), index: actual-idx}))
+      )
+        (match client-opt client
+          (match (as-max-len? (append (get clients acc) client) u15)
+            new-clients (merge acc {clients: new-clients})
+            acc
+          )
+          acc
+        )
+      )
+    )
+  )
 )
 ;;

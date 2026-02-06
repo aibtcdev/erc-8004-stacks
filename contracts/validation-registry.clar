@@ -31,7 +31,8 @@
     response: uint,
     response-hash: (buff 32),
     tag: (string-utf8 64),
-    last-update: uint
+    last-update: uint,
+    has-response: bool
   }
 )
 
@@ -65,7 +66,8 @@
         response: u0,
         response-hash: 0x0000000000000000000000000000000000000000000000000000000000000000,
         tag: u"",
-        last-update: stacks-block-height
+        last-update: stacks-block-height,
+        has-response: false
       }
     )
     ;; Append to agent-validations list
@@ -111,14 +113,15 @@
     (asserts! (is-eq caller (get validator validation)) ERR_NOT_AUTHORIZED)
     ;; Check response is valid (0-100)
     (asserts! (<= response u100) ERR_INVALID_RESPONSE)
-    ;; Update validation record
+    ;; Update validation record (progressive: can be called multiple times)
     (map-set validations
       {request-hash: request-hash}
       (merge validation {
         response: response,
         response-hash: response-hash,
         tag: tag,
-        last-update: stacks-block-height
+        last-update: stacks-block-height,
+        has-response: true
       })
     )
     ;; Emit event
@@ -212,8 +215,9 @@
         (matches-tag (match (get tag acc) filter-tag
           (is-eq filter-tag (get tag validation))
           true))
+        (has-response (get has-response validation))
       )
-        (if (and matches-validator matches-tag)
+        (if (and matches-validator matches-tag has-response)
           {
             validators: (get validators acc),
             tag: (get tag acc),

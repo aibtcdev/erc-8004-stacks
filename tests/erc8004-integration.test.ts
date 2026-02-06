@@ -64,8 +64,8 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     expect(approveResult.result).toBeOk(Cl.bool(true));
 
     // Step 4: Client gives feedback
-    const tag1 = bufferCV(tagFromString("quality"));
-    const tag2 = bufferCV(tagFromString("speed"));
+    const tag1 = Cl.stringUtf8("quality");
+    const tag2 = Cl.stringUtf8("speed");
     const feedbackHash = bufferCV(hashFromString("feedback-content-hash"));
 
     const feedbackResult = simnet.callPublicFn(
@@ -77,6 +77,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
         Cl.uint(0), // value-decimals
         tag1,
         tag2,
+        Cl.stringUtf8("https://example.com/api"),
         stringUtf8CV("ipfs://feedback-uri"),
         feedbackHash,
       ],
@@ -126,26 +127,26 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
       agentOwner
     );
 
-    const emptyTag = bufferCV(new Uint8Array(32));
+    const emptyTag = Cl.stringUtf8("");
     const hash = bufferCV(hashFromString("hash"));
 
     // Give 3 feedbacks
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(80), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("uri1"), hash],
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("uri1"), hash],
       client1
     );
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(90), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("uri2"), hash],
+      [uintCV(agentId), Cl.int(90), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("uri2"), hash],
       client1
     );
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(100), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("uri3"), hash],
+      [uintCV(agentId), Cl.int(100), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("uri3"), hash],
       client1
     );
 
@@ -194,12 +195,12 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
       agentOwner
     );
 
-    const emptyTag = bufferCV(new Uint8Array(32));
+    const emptyTag = Cl.stringUtf8("");
     const hash = bufferCV(hashFromString("hash"));
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(50), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("bad-service"), hash],
+      [uintCV(agentId), Cl.int(50), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("bad-service"), hash],
       client1
     );
 
@@ -222,7 +223,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     // Check response count
     const countResult = simnet.callReadOnlyFn(
       "reputation-registry",
-      "get-response-count",
+      "get-response-count-single",
       [uintCV(agentId), principalCV(client1), uintCV(1n), principalCV(agentOwner)],
       deployer
     );
@@ -313,7 +314,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
     const agentId = 0n;
 
     const tag = bufferCV(tagFromString("audit"));
-    const emptyTag = bufferCV(new Uint8Array(32));
+    const emptyTag = Cl.stringUtf8("");
 
     // Request 3 validations
     for (let i = 1; i <= 3; i++) {
@@ -394,12 +395,12 @@ describe("ERC-8004 Integration: Operator Permissions", () => {
     expect(validationResult.result).toBeOk(Cl.bool(true));
 
     // Verify client can now give feedback
-    const emptyTag = bufferCV(new Uint8Array(32));
+    const emptyTag = Cl.stringUtf8("");
     const hash = bufferCV(hashFromString("hash"));
     const feedbackResult = simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(95), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("great"), hash],
+      [uintCV(agentId), Cl.int(95), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("great"), hash],
       client1
     );
     expect(feedbackResult.result).toBeOk(uintCV(1n));
@@ -452,12 +453,12 @@ describe("ERC-8004 Integration: Cross-Contract Authorization", () => {
     );
 
     // Owner tries to give feedback to own agent
-    const emptyTag = bufferCV(new Uint8Array(32));
+    const emptyTag = Cl.stringUtf8("");
     const hash = bufferCV(hashFromString("self-feedback"));
     const selfFeedback = simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(100), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("great"), hash],
+      [uintCV(agentId), Cl.int(100), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("great"), hash],
       agentOwner
     );
     expect(selfFeedback.result).toBeErr(uintCV(3005n)); // ERR_SELF_FEEDBACK
@@ -484,21 +485,21 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
       agentOwner
     );
 
-    const tag1 = bufferCV(tagFromString("quality"));
-    const emptyTag = bufferCV(new Uint8Array(32));
+    const tag1 = Cl.stringUtf8("quality");
+    const emptyTag = Cl.stringUtf8("");
     const hash = bufferCV(hashFromString("hash"));
 
     // Client 1 gives 2 feedbacks
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag1, emptyTag, stringUtf8CV("c1-1"), hash],
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag1, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("c1-1"), hash],
       client1
     );
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(90), Cl.uint(0), tag1, emptyTag, stringUtf8CV("c1-2"), hash],
+      [uintCV(agentId), Cl.int(90), Cl.uint(0), tag1, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("c1-2"), hash],
       client1
     );
 
@@ -506,7 +507,7 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(70), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("c2-1"), hash],
+      [uintCV(agentId), Cl.int(70), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("c2-1"), hash],
       client2
     );
 
@@ -534,28 +535,28 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
       agentOwner
     );
 
-    const qualityTag = bufferCV(tagFromString("quality"));
-    const speedTag = bufferCV(tagFromString("speed"));
-    const emptyTag = bufferCV(new Uint8Array(32));
+    const qualityTag = Cl.stringUtf8("quality");
+    const speedTag = Cl.stringUtf8("speed");
+    const emptyTag = Cl.stringUtf8("");
     const hash = bufferCV(hashFromString("hash"));
 
     // Give feedbacks with different tags
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(80), Cl.uint(0), qualityTag, emptyTag, stringUtf8CV("q1"), hash],
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), qualityTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("q1"), hash],
       client1
     );
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(90), Cl.uint(0), speedTag, emptyTag, stringUtf8CV("s1"), hash],
+      [uintCV(agentId), Cl.int(90), Cl.uint(0), speedTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("s1"), hash],
       client1
     );
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(85), Cl.uint(0), qualityTag, emptyTag, stringUtf8CV("q2"), hash],
+      [uintCV(agentId), Cl.int(85), Cl.uint(0), qualityTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("q2"), hash],
       client1
     );
 
@@ -583,26 +584,26 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
       agentOwner
     );
 
-    const emptyTag = bufferCV(new Uint8Array(32));
+    const emptyTag = Cl.stringUtf8("");
     const hash = bufferCV(hashFromString("hash"));
 
     // Give 3 feedbacks
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(80), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("f1"), hash],
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("f1"), hash],
       client1
     );
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(90), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("f2"), hash],
+      [uintCV(agentId), Cl.int(90), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("f2"), hash],
       client1
     );
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(100), Cl.uint(0), emptyTag, emptyTag, stringUtf8CV("f3"), hash],
+      [uintCV(agentId), Cl.int(100), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("f3"), hash],
       client1
     );
 

@@ -114,8 +114,9 @@ describe("reputation-registry give-feedback (permissionless)", () => {
         uintCV(agentId),
         Cl.int(85),
         Cl.uint(0),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
+        Cl.stringUtf8("quality"),
+        Cl.stringUtf8("responsive"),
+        stringUtf8CV("https://example.com/api"),
         stringUtf8CV("ipfs://feedback"),
         bufferCV(hashFromString("feedback-hash")),
       ],
@@ -138,8 +139,9 @@ describe("reputation-registry give-feedback (permissionless)", () => {
         uintCV(agentId),
         Cl.int(9977),
         Cl.uint(2),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
+        Cl.stringUtf8("quality"),
+        Cl.stringUtf8("responsive"),
+        stringUtf8CV("https://example.com/api"),
         stringUtf8CV("ipfs://feedback"),
         bufferCV(hashFromString("feedback-hash")),
       ],
@@ -162,8 +164,9 @@ describe("reputation-registry give-feedback (permissionless)", () => {
         uintCV(agentId),
         Cl.int(-32),
         Cl.uint(1),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
+        Cl.stringUtf8("quality"),
+        Cl.stringUtf8("responsive"),
+        stringUtf8CV("https://example.com/api"),
         stringUtf8CV("ipfs://feedback"),
         bufferCV(hashFromString("feedback-hash")),
       ],
@@ -186,8 +189,9 @@ describe("reputation-registry give-feedback (permissionless)", () => {
         uintCV(agentId),
         Cl.int(0),
         Cl.uint(0),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
+        Cl.stringUtf8("quality"),
+        Cl.stringUtf8("responsive"),
+        stringUtf8CV("https://example.com/api"),
         stringUtf8CV("ipfs://feedback"),
         bufferCV(hashFromString("feedback-hash")),
       ],
@@ -210,8 +214,9 @@ describe("reputation-registry give-feedback (permissionless)", () => {
         uintCV(agentId),
         Cl.int(100),
         Cl.uint(19),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
+        Cl.stringUtf8("quality"),
+        Cl.stringUtf8("responsive"),
+        stringUtf8CV("https://example.com/api"),
         stringUtf8CV("ipfs://feedback"),
         bufferCV(hashFromString("feedback-hash")),
       ],
@@ -234,8 +239,9 @@ describe("reputation-registry give-feedback (permissionless)", () => {
         uintCV(agentId),
         Cl.int(100),
         Cl.uint(0),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
+        Cl.stringUtf8("quality"),
+        Cl.stringUtf8("responsive"),
+        stringUtf8CV("https://example.com/api"),
         stringUtf8CV("ipfs://feedback"),
         bufferCV(hashFromString("feedback-hash")),
       ],
@@ -264,8 +270,9 @@ describe("reputation-registry give-feedback (permissionless)", () => {
         uintCV(agentId),
         Cl.int(100),
         Cl.uint(0),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
+        Cl.stringUtf8("quality"),
+        Cl.stringUtf8("responsive"),
+        stringUtf8CV("https://example.com/api"),
         stringUtf8CV("ipfs://feedback"),
         bufferCV(hashFromString("feedback-hash")),
       ],
@@ -296,8 +303,9 @@ describe("reputation-registry give-feedback-approved (on-chain approval)", () =>
         uintCV(agentId),
         Cl.int(85),
         Cl.uint(0),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
+        Cl.stringUtf8("quality"),
+        Cl.stringUtf8("responsive"),
+        stringUtf8CV("https://example.com/api"),
         stringUtf8CV("ipfs://feedback"),
         bufferCV(hashFromString("feedback-hash")),
       ],
@@ -320,8 +328,9 @@ describe("reputation-registry give-feedback-approved (on-chain approval)", () =>
         uintCV(agentId),
         Cl.int(85),
         Cl.uint(0),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
+        Cl.stringUtf8("quality"),
+        Cl.stringUtf8("responsive"),
+        stringUtf8CV("https://example.com/api"),
         stringUtf8CV("ipfs://feedback"),
         bufferCV(hashFromString("feedback-hash")),
       ],
@@ -341,8 +350,9 @@ describe("reputation-registry give-feedback-approved (on-chain approval)", () =>
         uintCV(999n),
         Cl.int(85),
         Cl.uint(0),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
+        Cl.stringUtf8("quality"),
+        Cl.stringUtf8("responsive"),
+        stringUtf8CV("https://example.com/api"),
         stringUtf8CV("ipfs://feedback"),
         bufferCV(hashFromString("feedback-hash")),
       ],
@@ -364,19 +374,19 @@ describe("reputation-registry give-feedback-approved (on-chain approval)", () =>
     );
 
     // First two feedbacks should succeed
-    const tag = bufferCV(hashFromString("tag"));
-    const hash = bufferCV(hashFromString("hash"));
+    const tag = Cl.stringUtf8("tag");
+    const hash = bufferCV(hashFromString("feedback-hash"));
 
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("uri1"), hash],
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri1"), hash],
       address2
     );
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(90), Cl.uint(0), tag, tag, stringUtf8CV("uri2"), hash],
+      [uintCV(agentId), Cl.int(90), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri2"), hash],
       address2
     );
 
@@ -384,7 +394,7 @@ describe("reputation-registry give-feedback-approved (on-chain approval)", () =>
     const { result } = simnet.callPublicFn(
       "reputation-registry",
       "give-feedback-approved",
-      [uintCV(agentId), Cl.int(100), Cl.uint(0), tag, tag, stringUtf8CV("uri3"), hash],
+      [uintCV(agentId), Cl.int(100), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri3"), hash],
       address2
     );
 
@@ -404,8 +414,9 @@ describe("reputation-registry revoke-feedback", () => {
         uintCV(agentId),
         Cl.int(85),
         Cl.uint(0),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
+        Cl.stringUtf8("quality"),
+        Cl.stringUtf8("responsive"),
+        stringUtf8CV("https://example.com/api"),
         stringUtf8CV("ipfs://feedback"),
         bufferCV(hashFromString("feedback-hash")),
       ],
@@ -443,8 +454,9 @@ describe("reputation-registry revoke-feedback", () => {
         uintCV(agentId),
         Cl.int(85),
         Cl.uint(0),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
+        Cl.stringUtf8("quality"),
+        Cl.stringUtf8("responsive"),
+        stringUtf8CV("https://example.com/api"),
         stringUtf8CV("ipfs://feedback"),
         bufferCV(hashFromString("feedback-hash")),
       ],
@@ -473,8 +485,9 @@ describe("reputation-registry revoke-feedback", () => {
         uintCV(agentId),
         Cl.int(85),
         Cl.uint(0),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
+        Cl.stringUtf8("quality"),
+        Cl.stringUtf8("responsive"),
+        stringUtf8CV("https://example.com/api"),
         stringUtf8CV("ipfs://feedback"),
         bufferCV(hashFromString("feedback-hash")),
       ],
@@ -511,8 +524,9 @@ describe("reputation-registry append-response", () => {
         uintCV(agentId),
         Cl.int(85),
         Cl.uint(0),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
+        Cl.stringUtf8("quality"),
+        Cl.stringUtf8("responsive"),
+        stringUtf8CV("https://example.com/api"),
         stringUtf8CV("ipfs://feedback"),
         bufferCV(hashFromString("feedback-hash")),
       ],
@@ -539,8 +553,7 @@ describe("reputation-registry append-response", () => {
     // verify response count
     const count = simnet.callReadOnlyFn(
       "reputation-registry",
-      "get-response-count",
-      [uintCV(agentId), principalCV(address2), uintCV(1n), principalCV(address1)],
+      "get-response-count-single", [uintCV(agentId), principalCV(address2), uintCV(1n), principalCV(address1)],
       deployer
     ).result;
     expect(count).toStrictEqual(uintCV(1n));
@@ -556,8 +569,9 @@ describe("reputation-registry append-response", () => {
         uintCV(agentId),
         Cl.int(85),
         Cl.uint(0),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
+        Cl.stringUtf8("quality"),
+        Cl.stringUtf8("responsive"),
+        stringUtf8CV("https://example.com/api"),
         stringUtf8CV("ipfs://feedback"),
         bufferCV(hashFromString("feedback-hash")),
       ],
@@ -573,7 +587,7 @@ describe("reputation-registry append-response", () => {
         principalCV(address2),
         uintCV(1n),
         stringUtf8CV("ipfs://response1"),
-        bufferCV(hashFromString("hash1")),
+        bufferCV(hashFromString("response-hash1")),
       ],
       address1
     );
@@ -585,7 +599,7 @@ describe("reputation-registry append-response", () => {
         principalCV(address2),
         uintCV(1n),
         stringUtf8CV("ipfs://response2"),
-        bufferCV(hashFromString("hash2")),
+        bufferCV(hashFromString("response-hash2")),
       ],
       address1
     );
@@ -593,8 +607,7 @@ describe("reputation-registry append-response", () => {
     // verify response count is 2
     const count = simnet.callReadOnlyFn(
       "reputation-registry",
-      "get-response-count",
-      [uintCV(agentId), principalCV(address2), uintCV(1n), principalCV(address1)],
+      "get-response-count-single", [uintCV(agentId), principalCV(address2), uintCV(1n), principalCV(address1)],
       deployer
     ).result;
     expect(count).toStrictEqual(uintCV(2n));
@@ -632,8 +645,9 @@ describe("reputation-registry append-response", () => {
         uintCV(agentId),
         Cl.int(85),
         Cl.uint(0),
-        bufferCV(hashFromString("quality")),
-        bufferCV(hashFromString("responsive")),
+        Cl.stringUtf8("quality"),
+        Cl.stringUtf8("responsive"),
+        stringUtf8CV("https://example.com/api"),
         stringUtf8CV("ipfs://feedback"),
         bufferCV(hashFromString("feedback-hash")),
       ],
@@ -663,8 +677,8 @@ describe("reputation-registry read-only functions", () => {
   it("read-feedback() returns feedback data with value and decimals", () => {
     // arrange
     const agentId = registerAgent(address1);
-    const tag1 = bufferCV(hashFromString("quality"));
-    const tag2 = bufferCV(hashFromString("responsive"));
+    const tag1 = Cl.stringUtf8("quality");
+    const tag2 = Cl.stringUtf8("responsive");
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback",
@@ -674,6 +688,7 @@ describe("reputation-registry read-only functions", () => {
         Cl.uint(2),
         tag1,
         tag2,
+        stringUtf8CV("https://example.com/api"),
         stringUtf8CV("ipfs://feedback"),
         bufferCV(hashFromString("feedback-hash")),
       ],
@@ -698,18 +713,18 @@ describe("reputation-registry read-only functions", () => {
   it("get-last-index() returns correct index", () => {
     // arrange
     const agentId = registerAgent(address1);
-    const tag = bufferCV(hashFromString("tag"));
-    const hash = bufferCV(hashFromString("hash"));
+    const tag = Cl.stringUtf8("tag");
+    const hash = bufferCV(hashFromString("feedback-hash"));
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback",
-      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("uri1"), hash],
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri1"), hash],
       address2
     );
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback",
-      [uintCV(agentId), Cl.int(90), Cl.uint(0), tag, tag, stringUtf8CV("uri2"), hash],
+      [uintCV(agentId), Cl.int(90), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri2"), hash],
       address2
     );
 
@@ -728,18 +743,18 @@ describe("reputation-registry read-only functions", () => {
   it("get-clients() returns list of clients", () => {
     // arrange
     const agentId = registerAgent(address1);
-    const tag = bufferCV(hashFromString("tag"));
-    const hash = bufferCV(hashFromString("hash"));
+    const tag = Cl.stringUtf8("tag");
+    const hash = bufferCV(hashFromString("feedback-hash"));
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback",
-      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("uri1"), hash],
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri1"), hash],
       address2
     );
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback",
-      [uintCV(agentId), Cl.int(90), Cl.uint(0), tag, tag, stringUtf8CV("uri2"), hash],
+      [uintCV(agentId), Cl.int(90), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri2"), hash],
       address3
     );
 
@@ -760,19 +775,19 @@ describe("reputation-registry read-only functions", () => {
   it("get-summary() returns count and summary-value", () => {
     // arrange
     const agentId = registerAgent(address1);
-    const tag = bufferCV(hashFromString("tag"));
-    const hash = bufferCV(hashFromString("hash"));
+    const tag = Cl.stringUtf8("tag");
+    const hash = bufferCV(hashFromString("feedback-hash"));
     // Two feedbacks: 80 and 100, average = 90
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback",
-      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("uri1"), hash],
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri1"), hash],
       address2
     );
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback",
-      [uintCV(agentId), Cl.int(100), Cl.uint(0), tag, tag, stringUtf8CV("uri2"), hash],
+      [uintCV(agentId), Cl.int(100), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri2"), hash],
       address3
     );
 
@@ -797,18 +812,18 @@ describe("reputation-registry read-only functions", () => {
   it("get-summary() excludes revoked feedback", () => {
     // arrange
     const agentId = registerAgent(address1);
-    const tag = bufferCV(hashFromString("tag"));
-    const hash = bufferCV(hashFromString("hash"));
+    const tag = Cl.stringUtf8("tag");
+    const hash = bufferCV(hashFromString("feedback-hash"));
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback",
-      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("uri1"), hash],
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri1"), hash],
       address2
     );
     simnet.callPublicFn(
       "reputation-registry",
       "give-feedback",
-      [uintCV(agentId), Cl.int(100), Cl.uint(0), tag, tag, stringUtf8CV("uri2"), hash],
+      [uintCV(agentId), Cl.int(100), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri2"), hash],
       address2
     );
     // Revoke first feedback

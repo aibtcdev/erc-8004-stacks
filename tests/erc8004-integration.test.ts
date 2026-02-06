@@ -352,7 +352,8 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
       deployer
     );
     const validations = validationsResult.result as any;
-    expect(validations.data.validations.list.length).toBe(3);
+    const validationsList = validations.value.validations.value;
+    expect(validationsList.length).toBe(3);
   });
 
   it("progressive validation: validator updates response multiple times", () => {

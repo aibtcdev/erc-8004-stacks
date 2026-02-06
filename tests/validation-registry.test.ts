@@ -767,13 +767,14 @@ describe("validation-registry pagination", () => {
       deployer
     );
     const page1 = page1Result.result as any;
+    const validationsList1 = page1.value.validations.value;
+    const cursor1 = page1.value.cursor;
 
     // assert - first page has 15 validations and a cursor
-    expect(page1.data.validations.list.length).toBe(15);
-    expect(page1.data.cursor.type).toBe(Cl.OptionalType.Some);
+    expect(validationsList1.length).toBe(15);
+    expect(cursor1.type).toBe('some');
 
     // act - get second page
-    const cursor1 = page1.data.cursor;
     const page2Result = simnet.callReadOnlyFn(
       "validation-registry",
       "get-agent-validations",
@@ -783,8 +784,8 @@ describe("validation-registry pagination", () => {
     const page2 = page2Result.result as any;
 
     // assert - second page has remaining validations and no cursor
-    expect(page2.data.validations.list.length).toBe(5);
-    expect(page2.data.cursor.type).toBe(Cl.OptionalType.None);
+    expect(page2.value.validations.value.length).toBe(5);
+    expect(page2.value.cursor.type).toBe('none');
   });
 
   it("get-validator-requests() paginates correctly with 20 requests", () => {
@@ -822,13 +823,14 @@ describe("validation-registry pagination", () => {
       deployer
     );
     const page1 = page1Result.result as any;
+    const requestsList1 = page1.value.requests.value;
+    const cursor1 = page1.value.cursor;
 
     // assert - first page has 15 requests and a cursor
-    expect(page1.data.requests.list.length).toBe(15);
-    expect(page1.data.cursor.type).toBe(Cl.OptionalType.Some);
+    expect(requestsList1.length).toBe(15);
+    expect(cursor1.type).toBe('some');
 
     // act - get second page
-    const cursor1 = page1.data.cursor;
     const page2Result = simnet.callReadOnlyFn(
       "validation-registry",
       "get-validator-requests",
@@ -838,7 +840,7 @@ describe("validation-registry pagination", () => {
     const page2 = page2Result.result as any;
 
     // assert - second page has remaining requests and no cursor
-    expect(page2.data.requests.list.length).toBe(5);
-    expect(page2.data.cursor.type).toBe(Cl.OptionalType.None);
+    expect(page2.value.requests.value.length).toBe(5);
+    expect(page2.value.cursor.type).toBe('none');
   });
 });

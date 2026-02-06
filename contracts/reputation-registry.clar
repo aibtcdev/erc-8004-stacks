@@ -182,15 +182,16 @@
     (current-index (default-to u0 (map-get? last-index {agent-id: agent-id, client: caller})))
     (next-index (+ current-index u1))
     (approved-limit (default-to u0 (map-get? approved-clients {agent-id: agent-id, client: caller})))
+    (auth-check (contract-call? .identity-registry is-authorized-or-owner caller agent-id))
     (current-global-index (default-to u0 (map-get? last-global-index {agent-id: agent-id})))
     (next-global-index (+ current-global-index u1))
   )
     ;; Verify valueDecimals is valid (0-18)
     (asserts! (<= value-decimals u18) ERR_INVALID_DECIMALS)
-    ;; Verify agent exists
-    (asserts! (is-some (contract-call? .identity-registry owner-of agent-id)) ERR_AGENT_NOT_FOUND)
-    ;; Verify caller is NOT owner or operator (prevent self-feedback)
-    (asserts! (not (is-authorized agent-id caller)) ERR_SELF_FEEDBACK)
+    ;; Verify agent exists (is-authorized-or-owner returns error if not)
+    (asserts! (is-ok auth-check) ERR_AGENT_NOT_FOUND)
+    ;; Verify caller is NOT authorized (prevent self-feedback)
+    (asserts! (not (unwrap-panic auth-check)) ERR_SELF_FEEDBACK)
     ;; Verify caller has on-chain approval with sufficient limit
     (asserts! (>= approved-limit next-index) ERR_INDEX_LIMIT_EXCEEDED)
     ;; Store feedback
@@ -253,15 +254,16 @@
     (caller tx-sender)
     (current-index (default-to u0 (map-get? last-index {agent-id: agent-id, client: caller})))
     (next-index (+ current-index u1))
+    (auth-check (contract-call? .identity-registry is-authorized-or-owner caller agent-id))
     (current-global-index (default-to u0 (map-get? last-global-index {agent-id: agent-id})))
     (next-global-index (+ current-global-index u1))
   )
     ;; Verify valueDecimals is valid (0-18)
     (asserts! (<= value-decimals u18) ERR_INVALID_DECIMALS)
-    ;; Verify agent exists
-    (asserts! (is-some (contract-call? .identity-registry owner-of agent-id)) ERR_AGENT_NOT_FOUND)
-    ;; Verify caller is NOT owner or operator (prevent self-feedback)
-    (asserts! (not (is-authorized agent-id caller)) ERR_SELF_FEEDBACK)
+    ;; Verify agent exists (is-authorized-or-owner returns error if not)
+    (asserts! (is-ok auth-check) ERR_AGENT_NOT_FOUND)
+    ;; Verify caller is NOT authorized (prevent self-feedback)
+    (asserts! (not (unwrap-panic auth-check)) ERR_SELF_FEEDBACK)
     ;; Verify expiry
     (asserts! (> expiry stacks-block-height) ERR_AUTH_EXPIRED)
     ;; Verify index limit

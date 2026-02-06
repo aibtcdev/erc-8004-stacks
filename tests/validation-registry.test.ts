@@ -16,6 +16,7 @@ const deployer = accounts.get("deployer")!;
 const address1 = accounts.get("wallet_1")!;
 const address2 = accounts.get("wallet_2")!;
 const address3 = accounts.get("wallet_3")!;
+const address4 = accounts.get("wallet_4")!;
 
 // Helper to create a 32-byte buffer from a string (for request/response hashes)
 function hashFromString(s: string): Uint8Array {
@@ -484,7 +485,7 @@ describe("validation-registry read-only functions", () => {
     expect(result).toBeNone();
   });
 
-  it("get-agent-validations() returns list of request hashes", () => {
+  it("get-agent-validations() returns paginated list of request hashes", () => {
     // arrange
     const agentId = registerAgent(address1);
     const hash1 = hashFromString("agent-val-1");
@@ -517,15 +518,20 @@ describe("validation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "validation-registry",
       "get-agent-validations",
-      [uintCV(agentId)],
+      [uintCV(agentId), Cl.none()],
       deployer
     );
 
     // assert
-    expect(result).toBeSome(listCV([bufferCV(hash1), bufferCV(hash2)]));
+    expect(result).toStrictEqual(
+      Cl.tuple({
+        validations: listCV([bufferCV(hash1), bufferCV(hash2)]),
+        cursor: Cl.none()
+      })
+    );
   });
 
-  it("get-validator-requests() returns list of request hashes for validator", () => {
+  it("get-validator-requests() returns paginated list of request hashes for validator", () => {
     // arrange
     const agentId1 = registerAgent(address1);
     const agentId2 = registerAgent(address1);
@@ -559,12 +565,17 @@ describe("validation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "validation-registry",
       "get-validator-requests",
-      [principalCV(address2)],
+      [principalCV(address2), Cl.none()],
       deployer
     );
 
     // assert
-    expect(result).toBeSome(listCV([bufferCV(hash1), bufferCV(hash2)]));
+    expect(result).toStrictEqual(
+      Cl.tuple({
+        requests: listCV([bufferCV(hash1), bufferCV(hash2)]),
+        cursor: Cl.none()
+      })
+    );
   });
 
   it("get-summary() returns count and average for agent validations", () => {
@@ -716,5 +727,118 @@ describe("validation-registry read-only functions", () => {
 
     // assert
     expect(result).toStrictEqual(Cl.stringUtf8("2.0.0"));
+  });
+});
+
+describe("validation-registry pagination", () => {
+  it("get-agent-validations() paginates correctly with 20 validations", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    const validators = [
+      address2,
+      address3,
+      address4,
+      accounts.get("wallet_5")!,
+      accounts.get("wallet_6")!,
+    ];
+
+    // Create 20 validation requests
+    for (let i = 0; i < 20; i++) {
+      const validatorAddr = validators[i % validators.length];
+      const hash = hashFromString(`validation-${i}`);
+      simnet.callPublicFn(
+        "validation-registry",
+        "validation-request",
+        [
+          principalCV(validatorAddr),
+          uintCV(agentId),
+          stringUtf8CV(`uri-${i}`),
+          bufferCV(hash),
+        ],
+        address1
+      );
+    }
+
+    // act - get first page (15 validations)
+    const page1Result = simnet.callReadOnlyFn(
+      "validation-registry",
+      "get-agent-validations",
+      [uintCV(agentId), Cl.none()],
+      deployer
+    );
+    const page1 = page1Result.result as any;
+
+    // assert - first page has 15 validations and a cursor
+    expect(page1.data.validations.list.length).toBe(15);
+    expect(page1.data.cursor.type).toBe(Cl.OptionalType.Some);
+
+    // act - get second page
+    const cursor1 = page1.data.cursor;
+    const page2Result = simnet.callReadOnlyFn(
+      "validation-registry",
+      "get-agent-validations",
+      [uintCV(agentId), cursor1],
+      deployer
+    );
+    const page2 = page2Result.result as any;
+
+    // assert - second page has remaining validations and no cursor
+    expect(page2.data.validations.list.length).toBe(5);
+    expect(page2.data.cursor.type).toBe(Cl.OptionalType.None);
+  });
+
+  it("get-validator-requests() paginates correctly with 20 requests", () => {
+    // arrange
+    const agents = [
+      registerAgent(address1),
+      registerAgent(address1),
+      registerAgent(address1),
+      registerAgent(address1),
+      registerAgent(address1),
+    ];
+
+    // Create 20 validation requests all for address2 as validator
+    for (let i = 0; i < 20; i++) {
+      const agentId = agents[i % agents.length];
+      const hash = hashFromString(`request-${i}`);
+      simnet.callPublicFn(
+        "validation-registry",
+        "validation-request",
+        [
+          principalCV(address2),
+          uintCV(agentId),
+          stringUtf8CV(`uri-${i}`),
+          bufferCV(hash),
+        ],
+        address1
+      );
+    }
+
+    // act - get first page (15 requests)
+    const page1Result = simnet.callReadOnlyFn(
+      "validation-registry",
+      "get-validator-requests",
+      [principalCV(address2), Cl.none()],
+      deployer
+    );
+    const page1 = page1Result.result as any;
+
+    // assert - first page has 15 requests and a cursor
+    expect(page1.data.requests.list.length).toBe(15);
+    expect(page1.data.cursor.type).toBe(Cl.OptionalType.Some);
+
+    // act - get second page
+    const cursor1 = page1.data.cursor;
+    const page2Result = simnet.callReadOnlyFn(
+      "validation-registry",
+      "get-validator-requests",
+      [principalCV(address2), cursor1],
+      deployer
+    );
+    const page2 = page2Result.result as any;
+
+    // assert - second page has remaining requests and no cursor
+    expect(page2.data.requests.list.length).toBe(5);
+    expect(page2.data.cursor.type).toBe(Cl.OptionalType.None);
   });
 });

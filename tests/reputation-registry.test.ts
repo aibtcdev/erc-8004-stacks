@@ -741,7 +741,7 @@ describe("reputation-registry read-only functions", () => {
     expect(result).toStrictEqual(uintCV(2n));
   });
 
-  it("get-clients() returns list of clients", () => {
+  it("get-clients() returns paginated list of clients", () => {
     // arrange
     const agentId = registerAgent(address1);
     const tag = Cl.stringUtf8("tag");
@@ -763,13 +763,16 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-clients",
-      [uintCV(agentId)],
+      [uintCV(agentId), Cl.none()],
       deployer
     );
 
     // assert
-    expect(result).toBeSome(
-      listCV([principalCV(address2), principalCV(address3)])
+    expect(result).toStrictEqual(
+      Cl.tuple({
+        clients: listCV([principalCV(address2), principalCV(address3)]),
+        cursor: Cl.none()
+      })
     );
   });
 
@@ -1211,5 +1214,136 @@ describe("reputation-registry read-only functions", () => {
 
     // assert
     expect(result).toStrictEqual(Cl.stringUtf8("2.0.0"));
+  });
+});
+
+describe("reputation-registry pagination", () => {
+  it("get-clients() paginates correctly with 20 clients", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    const tag = Cl.stringUtf8("tag");
+    const hash = bufferCV(hashFromString("feedback-hash"));
+
+    // Create 20 clients using deployer and wallet_1 through wallet_8, repeated
+    const clientAddresses = [
+      deployer,
+      address1,
+      address2,
+      address3,
+      address4,
+      accounts.get("wallet_5")!,
+      accounts.get("wallet_6")!,
+      accounts.get("wallet_7")!,
+      accounts.get("wallet_8")!,
+    ];
+
+    // Give feedback from 20 different clients (cycling through available wallets)
+    for (let i = 0; i < 20; i++) {
+      const clientAddr = clientAddresses[i % clientAddresses.length];
+      // Skip if this is the agent owner (would cause self-feedback error)
+      if (clientAddr === address1) continue;
+
+      simnet.callPublicFn(
+        "reputation-registry",
+        "give-feedback",
+        [uintCV(agentId), Cl.int(50 + i), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV(`uri${i}`), hash],
+        clientAddr
+      );
+    }
+
+    // act - get first page (15 clients)
+    const page1Result = simnet.callReadOnlyFn(
+      "reputation-registry",
+      "get-clients",
+      [uintCV(agentId), Cl.none()],
+      deployer
+    );
+
+    // Extract fields from Clarity tuple
+    const page1Tuple = page1Result.result as {data: {clients: {list: unknown[]}, cursor: {type: number, value?: unknown}}};
+    const clientsList1 = page1Tuple.data.clients.list;
+    const cursor1CV = page1Tuple.data.cursor;
+
+    // assert - first page has 15 clients and a cursor
+    expect(clientsList1.length).toBe(15);
+    expect(cursor1CV.type).toBe(Cl.OptionalType.Some);
+
+    // act - get second page using the cursor value
+    const page2Result = simnet.callReadOnlyFn(
+      "reputation-registry",
+      "get-clients",
+      [uintCV(agentId), cursor1CV],
+      deployer
+    );
+    const page2Tuple = page2Result.result as {data: {clients: {list: unknown[]}, cursor: {type: number}}};
+    const clientsList2 = page2Tuple.data.clients.list;
+
+    // assert - second page has remaining clients and no cursor
+    expect(clientsList2.length).toBe(4); // 19 total (skipped address1)
+    expect(page2Tuple.data.cursor.type).toBe(Cl.OptionalType.None);
+  });
+
+  it("get-responders() paginates correctly with 20 responders", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    const tag = Cl.stringUtf8("tag");
+    const hash = bufferCV(hashFromString("feedback-hash"));
+
+    // Give one feedback from address2
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(75), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri"), hash],
+      address2
+    );
+
+    // Have 20 responders respond to that feedback
+    const responderAddresses = [
+      deployer,
+      address1,
+      address3,
+      address4,
+      accounts.get("wallet_5")!,
+      accounts.get("wallet_6")!,
+      accounts.get("wallet_7")!,
+      accounts.get("wallet_8")!,
+    ];
+
+    for (let i = 0; i < 20; i++) {
+      const responderAddr = responderAddresses[i % responderAddresses.length];
+      simnet.callPublicFn(
+        "reputation-registry",
+        "append-response",
+        [uintCV(agentId), principalCV(address2), uintCV(1n), stringUtf8CV(`response-uri-${i}`), bufferCV(hashFromString(`response-${i}`))],
+        responderAddr
+      );
+    }
+
+    // act - get first page (15 responders)
+    const page1Result = simnet.callReadOnlyFn(
+      "reputation-registry",
+      "get-responders",
+      [uintCV(agentId), principalCV(address2), uintCV(1n), Cl.none()],
+      deployer
+    );
+    const page1 = page1Result.result as any;
+
+    // assert - first page has 15 responders and a cursor
+    expect(page1.data.responders.list.length).toBe(15);
+    expect(page1.data.cursor.type).toBe(Cl.OptionalType.Some);
+
+    // act - get second page
+    const cursor1 = page1.data.cursor;
+    const page2Result = simnet.callReadOnlyFn(
+      "reputation-registry",
+      "get-responders",
+      [uintCV(agentId), principalCV(address2), uintCV(1n), cursor1],
+      deployer
+    );
+    const page2 = page2Result.result as any;
+
+    // assert - second page has remaining responders and no cursor
+    expect(page2.data.responders.list.length).toBe(5);
+    expect(page2.data.cursor.type).toBe(Cl.OptionalType.None);
   });
 });

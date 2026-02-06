@@ -226,11 +226,14 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     const respondersResult = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-responders",
-      [uintCV(agentId), principalCV(client1), uintCV(1n)],
+      [uintCV(agentId), principalCV(client1), uintCV(1n), Cl.none()],
       deployer
     );
-    expect(respondersResult.result).toBeSome(
-      listCV([principalCV(agentOwner)])
+    expect(respondersResult.result).toStrictEqual(
+      Cl.tuple({
+        responders: listCV([principalCV(agentOwner)]),
+        cursor: Cl.none()
+      })
     );
   });
 });
@@ -345,11 +348,11 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
     const validationsResult = simnet.callReadOnlyFn(
       "validation-registry",
       "get-agent-validations",
-      [uintCV(agentId)],
+      [uintCV(agentId), Cl.none()],
       deployer
     );
     const validations = validationsResult.result as any;
-    expect(validations.value.value.length).toBe(3);
+    expect(validations.data.validations.list.length).toBe(3);
   });
 
   it("progressive validation: validator updates response multiple times", () => {

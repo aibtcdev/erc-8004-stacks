@@ -28,14 +28,12 @@
 
 ;; Feedback iteration page size. Clarity requires static list iteration;
 ;; read-only folds process FEEDBACK_PAGE_SIZE entries per cursor page.
-;; Pass opt-cursor to paginate: none starts at index 1, (some u50) at 51, etc.
-(define-constant FEEDBACK_PAGE_SIZE u50)
+;; Pass opt-cursor to paginate: none starts at index 1, (some u15) at 16, etc.
+;; Set to 15 to stay within mainnet 30-read limit (15 items x 2 reads = 30).
+(define-constant FEEDBACK_PAGE_SIZE u15)
 (define-constant FEEDBACK_INDEX_LIST (list
   u1 u2 u3 u4 u5 u6 u7 u8 u9 u10
-  u11 u12 u13 u14 u15 u16 u17 u18 u19 u20
-  u21 u22 u23 u24 u25 u26 u27 u28 u29 u30
-  u31 u32 u33 u34 u35 u36 u37 u38 u39 u40
-  u41 u42 u43 u44 u45 u46 u47 u48 u49 u50
+  u11 u12 u13 u14 u15
 ))
 
 ;; Page size for list pagination (read-only functions)
@@ -73,6 +71,10 @@
 (define-map responder-count {agent-id: uint, client: principal, index: uint} uint)
 (define-map responder-at-index {agent-id: uint, client: principal, index: uint, responder-index: uint} principal)
 (define-map responder-exists {agent-id: uint, client: principal, index: uint, responder: principal} bool)
+
+;; Global feedback sequence for cross-client pagination
+(define-map last-global-index {agent-id: uint} uint)
+(define-map global-feedback-index {agent-id: uint, global-index: uint} {client: principal, client-index: uint})
 ;;
 
 ;; public functions
@@ -114,6 +116,8 @@
     (current-index (default-to u0 (map-get? last-index {agent-id: agent-id, client: caller})))
     (next-index (+ current-index u1))
     (auth-check (contract-call? .identity-registry is-authorized-or-owner caller agent-id))
+    (current-global-index (default-to u0 (map-get? last-global-index {agent-id: agent-id})))
+    (next-global-index (+ current-global-index u1))
   )
     ;; Verify valueDecimals is valid (0-18)
     (asserts! (<= value-decimals u18) ERR_INVALID_DECIMALS)
@@ -128,6 +132,9 @@
     )
     ;; Update last index
     (map-set last-index {agent-id: agent-id, client: caller} next-index)
+    ;; Update global sequence
+    (map-set global-feedback-index {agent-id: agent-id, global-index: next-global-index} {client: caller, client-index: next-index})
+    (map-set last-global-index {agent-id: agent-id} next-global-index)
     ;; Track client if new
     (if (not (default-to false (map-get? client-exists {agent-id: agent-id, client: caller})))
       (let (
@@ -175,6 +182,8 @@
     (current-index (default-to u0 (map-get? last-index {agent-id: agent-id, client: caller})))
     (next-index (+ current-index u1))
     (approved-limit (default-to u0 (map-get? approved-clients {agent-id: agent-id, client: caller})))
+    (current-global-index (default-to u0 (map-get? last-global-index {agent-id: agent-id})))
+    (next-global-index (+ current-global-index u1))
   )
     ;; Verify valueDecimals is valid (0-18)
     (asserts! (<= value-decimals u18) ERR_INVALID_DECIMALS)
@@ -191,6 +200,9 @@
     )
     ;; Update last index
     (map-set last-index {agent-id: agent-id, client: caller} next-index)
+    ;; Update global sequence
+    (map-set global-feedback-index {agent-id: agent-id, global-index: next-global-index} {client: caller, client-index: next-index})
+    (map-set last-global-index {agent-id: agent-id} next-global-index)
     ;; Track client if new
     (if (not (default-to false (map-get? client-exists {agent-id: agent-id, client: caller})))
       (let (
@@ -241,6 +253,8 @@
     (caller tx-sender)
     (current-index (default-to u0 (map-get? last-index {agent-id: agent-id, client: caller})))
     (next-index (+ current-index u1))
+    (current-global-index (default-to u0 (map-get? last-global-index {agent-id: agent-id})))
+    (next-global-index (+ current-global-index u1))
   )
     ;; Verify valueDecimals is valid (0-18)
     (asserts! (<= value-decimals u18) ERR_INVALID_DECIMALS)
@@ -263,6 +277,9 @@
     )
     ;; Update last index
     (map-set last-index {agent-id: agent-id, client: caller} next-index)
+    ;; Update global sequence
+    (map-set global-feedback-index {agent-id: agent-id, global-index: next-global-index} {client: caller, client-index: next-index})
+    (map-set last-global-index {agent-id: agent-id} next-global-index)
     ;; Track client if new
     (if (not (default-to false (map-get? client-exists {agent-id: agent-id, client: caller})))
       (let (
@@ -438,6 +455,10 @@
   (default-to u0 (map-get? last-index {agent-id: agent-id, client: client}))
 )
 
+(define-read-only (get-agent-feedback-count (agent-id uint))
+  (default-to u0 (map-get? last-global-index {agent-id: agent-id}))
+)
+
 (define-read-only (get-clients (agent-id uint) (opt-cursor (optional uint)))
   (let (
     (total-count (default-to u0 (map-get? client-count {agent-id: agent-id})))
@@ -521,37 +542,32 @@
 
 (define-read-only (read-all-feedback
   (agent-id uint)
-  (opt-clients (optional (list 50 principal)))
   (opt-tag1 (optional (string-utf8 64)))
   (opt-tag2 (optional (string-utf8 64)))
   (include-revoked bool)
   (opt-cursor (optional uint))
 )
   (let (
-    ;; If clients not provided, get first page from indexed storage
-    (client-list (match opt-clients
-      provided-clients provided-clients
-      (get clients (get-clients agent-id none))
-    ))
+    (last-global (default-to u0 (map-get? last-global-index {agent-id: agent-id})))
     (cursor-offset (default-to u0 opt-cursor))
-    (result (fold read-all-client-fold
-      client-list
+    (page-end (+ cursor-offset FEEDBACK_PAGE_SIZE))
+    (has-more (> last-global page-end))
+    (result (fold read-all-global-fold
+      FEEDBACK_INDEX_LIST
       {
         agent-id: agent-id,
         tag1: opt-tag1,
         tag2: opt-tag2,
         include-revoked: include-revoked,
-        client: tx-sender,
-        last-idx: u0,
         items: (list),
         cursor-offset: cursor-offset,
-        has-more: false
+        last-global: last-global
       }
     ))
   )
     {
       items: (get items result),
-      cursor: (if (get has-more result) (some (+ cursor-offset FEEDBACK_PAGE_SIZE)) none)
+      cursor: (if has-more (some page-end) none)
     }
   )
 )
@@ -712,74 +728,57 @@
   )
 )
 
-(define-private (read-all-client-fold
-  (client principal)
-  (acc {
-    agent-id: uint,
-    tag1: (optional (string-utf8 64)),
-    tag2: (optional (string-utf8 64)),
-    include-revoked: bool,
-    client: principal,
-    last-idx: uint,
-    items: (list 50 {client: principal, index: uint, value: int, value-decimals: uint, tag1: (string-utf8 64), tag2: (string-utf8 64), is-revoked: bool}),
-    cursor-offset: uint,
-    has-more: bool
-  })
-)
-  (let (
-    (agent-id (get agent-id acc))
-    (last-idx (default-to u0 (map-get? last-index {agent-id: agent-id, client: client})))
-    (page-end (+ (get cursor-offset acc) FEEDBACK_PAGE_SIZE))
-  )
-    (fold read-all-index-fold
-      FEEDBACK_INDEX_LIST
-      (merge acc {client: client, last-idx: last-idx, has-more: (or (get has-more acc) (> last-idx page-end))})
-    )
-  )
-)
-
-(define-private (read-all-index-fold
+(define-private (read-all-global-fold
   (idx uint)
   (acc {
     agent-id: uint,
     tag1: (optional (string-utf8 64)),
     tag2: (optional (string-utf8 64)),
     include-revoked: bool,
-    client: principal,
-    last-idx: uint,
     items: (list 50 {client: principal, index: uint, value: int, value-decimals: uint, tag1: (string-utf8 64), tag2: (string-utf8 64), is-revoked: bool}),
     cursor-offset: uint,
-    has-more: bool
+    last-global: uint
   })
 )
-  (let ((actual-idx (+ idx (get cursor-offset acc))))
-    (if (or (> actual-idx (get last-idx acc)) (>= (len (get items acc)) u50))
+  (let ((global-idx (+ idx (get cursor-offset acc))))
+    (if (or (> global-idx (get last-global acc)) (>= (len (get items acc)) u50))
       acc
       (let (
-        (fb-opt (map-get? feedback {agent-id: (get agent-id acc), client: (get client acc), index: actual-idx}))
+        (pointer-opt (map-get? global-feedback-index {agent-id: (get agent-id acc), global-index: global-idx}))
       )
-        (match fb-opt fb
+        (match pointer-opt pointer
           (let (
-            (dominated-by-revoked (and (get is-revoked fb) (not (get include-revoked acc))))
-            (matches-tag1 (match (get tag1 acc) filter-tag1
-              (is-eq filter-tag1 (get tag1 fb))
-              true))
-            (matches-tag2 (match (get tag2 acc) filter-tag2
-              (is-eq filter-tag2 (get tag2 fb))
-              true))
+            (fb-opt (map-get? feedback {
+              agent-id: (get agent-id acc),
+              client: (get client pointer),
+              index: (get client-index pointer)
+            }))
           )
-            (if (and (not dominated-by-revoked) matches-tag1 matches-tag2)
-              (match (as-max-len? (append (get items acc) {
-                client: (get client acc),
-                index: actual-idx,
-                value: (get value fb),
-                value-decimals: (get value-decimals fb),
-                tag1: (get tag1 fb),
-                tag2: (get tag2 fb),
-                is-revoked: (get is-revoked fb)
-              }) u50)
-                new-items (merge acc {items: new-items})
-                acc
+            (match fb-opt fb
+              (let (
+                (dominated-by-revoked (and (get is-revoked fb) (not (get include-revoked acc))))
+                (matches-tag1 (match (get tag1 acc) filter-tag1
+                  (is-eq filter-tag1 (get tag1 fb))
+                  true))
+                (matches-tag2 (match (get tag2 acc) filter-tag2
+                  (is-eq filter-tag2 (get tag2 fb))
+                  true))
+              )
+                (if (and (not dominated-by-revoked) matches-tag1 matches-tag2)
+                  (match (as-max-len? (append (get items acc) {
+                    client: (get client pointer),
+                    index: (get client-index pointer),
+                    value: (get value fb),
+                    value-decimals: (get value-decimals fb),
+                    tag1: (get tag1 fb),
+                    tag2: (get tag2 fb),
+                    is-revoked: (get is-revoked fb)
+                  }) u50)
+                    new-items (merge acc {items: new-items})
+                    acc
+                  )
+                  acc
+                )
               )
               acc
             )

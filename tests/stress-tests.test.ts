@@ -793,7 +793,7 @@ describe("Validation Registry - Stress Tests", () => {
       const result = simnet.callReadOnlyFn(
         "validation-registry",
         "get-summary",
-        [uintCV(agentId), noneCV(), noneCV()],
+        [uintCV(agentId)],
         deployer
       );
 
@@ -822,7 +822,7 @@ describe("Validation Registry - Stress Tests", () => {
       const result = simnet.callReadOnlyFn(
         "validation-registry",
         "get-summary",
-        [uintCV(agentId), noneCV(), noneCV()],
+        [uintCV(agentId)],
         deployer
       );
 
@@ -831,7 +831,7 @@ describe("Validation Registry - Stress Tests", () => {
       expect(data.value.count.value).toBe(9n);
     });
 
-    it("handles high scale with tag filtering", () => {
+    it("handles high scale (15 validations)", () => {
       // arrange
       const agentId = registerAgent(wallet1);
 
@@ -840,16 +840,15 @@ describe("Validation Registry - Stress Tests", () => {
       for (let i = 0; i < 15; i++) {
         const validator = validValidators[i % validValidators.length];
         const hash = createValidationRequest(agentId, wallet1, validator, i + 1);
-        // Add response (first 5 with "verified" tag, rest with "pending")
-        const tag = i < 5 ? "verified" : "pending";
+        // Add response (tag filtering is indexer's job now)
         addValidationResponse(hash, validator, 100n, i + 1);
       }
 
-      // act - get summary for all
+      // act - get summary (unfiltered, O(1))
       const result = simnet.callReadOnlyFn(
         "validation-registry",
         "get-summary",
-        [uintCV(agentId), noneCV(), noneCV()],
+        [uintCV(agentId)],
         deployer
       );
 

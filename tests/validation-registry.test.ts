@@ -381,6 +381,81 @@ describe("validation-registry public functions", () => {
     expect((status as any).value.value.response).toStrictEqual(uintCV(50n));
   });
 
+  it("get-summary() reflects progressive response updates accurately", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    const hash1 = hashFromString("progressive-total-1");
+    const hash2 = hashFromString("progressive-total-2");
+    const responseHash = bufferCV(hashFromString("resp"));
+    const tag = stringUtf8CV("verified");
+
+    // Create 2 validation requests
+    simnet.callPublicFn(
+      "validation-registry",
+      "validation-request",
+      [principalCV(address2), uintCV(agentId), stringUtf8CV("uri1"), bufferCV(hash1)],
+      address1
+    );
+    simnet.callPublicFn(
+      "validation-registry",
+      "validation-request",
+      [principalCV(address3), uintCV(agentId), stringUtf8CV("uri2"), bufferCV(hash2)],
+      address1
+    );
+
+    // Initial responses: 60 and 80 (avg = 70)
+    simnet.callPublicFn(
+      "validation-registry",
+      "validation-response",
+      [bufferCV(hash1), uintCV(60n), stringUtf8CV("r1"), responseHash, tag],
+      address2
+    );
+    simnet.callPublicFn(
+      "validation-registry",
+      "validation-response",
+      [bufferCV(hash2), uintCV(80n), stringUtf8CV("r2"), responseHash, tag],
+      address3
+    );
+
+    // Check initial summary
+    let result = simnet.callReadOnlyFn(
+      "validation-registry",
+      "get-summary",
+      [uintCV(agentId)],
+      deployer
+    ).result;
+    expect(result).toStrictEqual(
+      Cl.tuple({
+        count: uintCV(2n),
+        "avg-response": uintCV(70n),
+      })
+    );
+
+    // Progressive update: change hash1 from 60 to 90 (new avg = 85)
+    simnet.callPublicFn(
+      "validation-registry",
+      "validation-response",
+      [bufferCV(hash1), uintCV(90n), stringUtf8CV("r1-updated"), responseHash, tag],
+      address2
+    );
+
+    // act - check updated summary
+    result = simnet.callReadOnlyFn(
+      "validation-registry",
+      "get-summary",
+      [uintCV(agentId)],
+      deployer
+    ).result;
+
+    // assert - total should be 90 + 80 = 170, count still 2, avg = 85
+    expect(result).toStrictEqual(
+      Cl.tuple({
+        count: uintCV(2n),
+        "avg-response": uintCV(85n),
+      })
+    );
+  });
+
   it("get-summary() only counts validations with has-response: true", () => {
     // arrange
     const agentId = registerAgent(address1);
@@ -422,7 +497,7 @@ describe("validation-registry public functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "validation-registry",
       "get-summary",
-      [uintCV(agentId), noneCV(), noneCV()],
+      [uintCV(agentId)],
       deployer
     );
 
@@ -627,7 +702,7 @@ describe("validation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "validation-registry",
       "get-summary",
-      [uintCV(agentId), noneCV(), noneCV()],
+      [uintCV(agentId)],
       deployer
     );
 
@@ -636,67 +711,6 @@ describe("validation-registry read-only functions", () => {
       Cl.tuple({
         count: uintCV(2n),
         "avg-response": uintCV(90n),
-      })
-    );
-  });
-
-  it("get-summary() filters by validator", () => {
-    // arrange
-    const agentId = registerAgent(address1);
-    const hash1 = hashFromString("filter-v-1");
-    const hash2 = hashFromString("filter-v-2");
-    const tag = stringUtf8CV("verified");
-    const responseHash = bufferCV(hashFromString("resp"));
-
-    simnet.callPublicFn(
-      "validation-registry",
-      "validation-request",
-      [
-        principalCV(address2),
-        uintCV(agentId),
-        stringUtf8CV("uri1"),
-        bufferCV(hash1),
-      ],
-      address1
-    );
-    simnet.callPublicFn(
-      "validation-registry",
-      "validation-request",
-      [
-        principalCV(address3),
-        uintCV(agentId),
-        stringUtf8CV("uri2"),
-        bufferCV(hash2),
-      ],
-      address1
-    );
-
-    simnet.callPublicFn(
-      "validation-registry",
-      "validation-response",
-      [bufferCV(hash1), uintCV(80n), stringUtf8CV("r1"), responseHash, tag],
-      address2
-    );
-    simnet.callPublicFn(
-      "validation-registry",
-      "validation-response",
-      [bufferCV(hash2), uintCV(100n), stringUtf8CV("r2"), responseHash, tag],
-      address3
-    );
-
-    // act - filter to only address2's validations
-    const { result } = simnet.callReadOnlyFn(
-      "validation-registry",
-      "get-summary",
-      [uintCV(agentId), someCV(listCV([principalCV(address2)])), noneCV()],
-      deployer
-    );
-
-    // assert - only address2's score of 80
-    expect(result).toStrictEqual(
-      Cl.tuple({
-        count: uintCV(1n),
-        "avg-response": uintCV(80n),
       })
     );
   });

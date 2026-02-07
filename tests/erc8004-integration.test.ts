@@ -336,7 +336,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
     const summaryResult = simnet.callReadOnlyFn(
       "validation-registry",
       "get-summary",
-      [uintCV(agentId), noneCV(), noneCV()],
+      [uintCV(agentId)],
       deployer
     );
     const summary = summaryResult.result as any;
@@ -418,7 +418,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
     const summaryResult = simnet.callReadOnlyFn(
       "validation-registry",
       "get-summary",
-      [uintCV(agentId), noneCV(), noneCV()],
+      [uintCV(agentId)],
       deployer
     );
     const summary = summaryResult.result as any;
@@ -1186,15 +1186,16 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
       validator
     );
 
-    // Get validation summary filtered by tag
+    // Get validation summary (unfiltered - tag filtering is indexer's job)
     const valSummary = simnet.callReadOnlyFn(
       "validation-registry",
       "get-summary",
-      [uintCV(agentId), noneCV(), someCV(stringUtf8CV("security-audit"))],
+      [uintCV(agentId)],
       deployer
     );
     const valSum = valSummary.result as any;
-    expect(valSum.value.count.value).toBe(1n); // Only security-audit tag
+    expect(valSum.value.count.value).toBe(2n); // Both validations (tag filtering is indexer's job)
+    expect(valSum.value["avg-response"].value).toBe(87n); // (90 + 85) / 2
   });
 });
 

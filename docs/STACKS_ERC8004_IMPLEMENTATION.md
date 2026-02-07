@@ -21,12 +21,12 @@
 
 **Status**: All three contracts ✅ Implemented & Tested (125 tests passing). **v2.0.0 spec-compliant**.
 
-1. **Three Contracts** (modular, each refs `identity-registry` via cross-calls):
+1. **Three Contracts** (modular, each refs `identity-registry-v2` via cross-calls):
    | Contract | Status | Purpose | Key Maps/Functions |
    |----------|--------|---------|--------------------|
-   | `identity-registry.clar` | ✅ Done | Agent registration (ERC-721 equiv.) | `owners: {agent-id: uint} → principal`, `uris: {agent-id: uint} → (string-utf8 512)`, `metadata: {agent-id: uint, key: (string-utf8 128)} → (buff 512)`, `approvals: {agent-id: uint, operator: principal} → bool`<br>`register() → uint`, `register-with-uri((string-utf8 512)) → uint`, `register-full((string-utf8 512), (list 10 {key: (string-utf8 128), value: (buff 512)})) → uint agentId`, `owner-of(uint) → (optional principal)`, `get-uri(uint) → (optional (string-utf8 512))`, `set-agent-uri(uint, (string-utf8 512)) → (response bool uint)`, `set-metadata(uint, (string-utf8 128), (buff 512)) → (response bool uint)`, `set-approval-for-all(uint, principal, bool) → (response bool uint)`, `is-approved-for-all(uint, principal) → bool`, `get-version() → (string-utf8 8)` |
-   | `reputation-registry.clar` | ✅ Done | Feedback (value/tags/revoke/response) with O(1) summary | Dual auth: SIP-018 signatures + on-chain approval. `feedback: {agent-id, client, index} → {value, value-decimals, wad-value, tag1, tag2, is-revoked}`, `agent-summary: {agent-id} → {count, wad-sum}`<br>`approve-client`, `give-feedback`, `give-feedback-signed`, `revoke-feedback`, `append-response`, `get-summary` (O(1) unfiltered), `read-feedback` |
-   | `validation-registry.clar` | ✅ Done | Validator requests/responses with O(1) summary | `validations: (buff 32) → {validator, agent-id, response, response-hash, tag, last-update, has-response}`, `agent-summary: {agent-id} → {count, response-total}`<br>`validation-request`, `validation-response`, `get-validation-status`, `get-summary` (O(1) unfiltered), `get-agent-validations`, `get-validator-requests` |
+   | `identity-registry-v2.clar` | ✅ Done | Agent registration (ERC-721 equiv.) | `owners: {agent-id: uint} → principal`, `uris: {agent-id: uint} → (string-utf8 512)`, `metadata: {agent-id: uint, key: (string-utf8 128)} → (buff 512)`, `approvals: {agent-id: uint, operator: principal} → bool`<br>`register() → uint`, `register-with-uri((string-utf8 512)) → uint`, `register-full((string-utf8 512), (list 10 {key: (string-utf8 128), value: (buff 512)})) → uint agentId`, `owner-of(uint) → (optional principal)`, `get-uri(uint) → (optional (string-utf8 512))`, `set-agent-uri(uint, (string-utf8 512)) → (response bool uint)`, `set-metadata(uint, (string-utf8 128), (buff 512)) → (response bool uint)`, `set-approval-for-all(uint, principal, bool) → (response bool uint)`, `is-approved-for-all(uint, principal) → bool`, `get-version() → (string-utf8 8)` |
+   | `reputation-registry-v2.clar` | ✅ Done | Feedback (value/tags/revoke/response) with O(1) summary | Dual auth: SIP-018 signatures + on-chain approval. `feedback: {agent-id, client, index} → {value, value-decimals, wad-value, tag1, tag2, is-revoked}`, `agent-summary: {agent-id} → {count, wad-sum}`<br>`approve-client`, `give-feedback`, `give-feedback-signed`, `revoke-feedback`, `append-response`, `get-summary` (O(1) unfiltered), `read-feedback` |
+   | `validation-registry-v2.clar` | ✅ Done | Validator requests/responses with O(1) summary | `validations: (buff 32) → {validator, agent-id, response, response-hash, tag, last-update, has-response}`, `agent-summary: {agent-id} → {count, response-total}`<br>`validation-request`, `validation-response`, `get-validation-status`, `get-summary` (O(1) unfiltered), `get-agent-validations`, `get-validator-requests` |
 
 2. **Deployment**:
 
@@ -44,9 +44,9 @@
 
 | Component | Status | Tests | Version |
 |-----------|--------|-------|---------|
-| `identity-registry.clar` | ✅ Done | 35 tests | 2.0.0 |
-| `validation-registry.clar` | ✅ Done | 23 tests | 2.0.0 |
-| `reputation-registry.clar` | ✅ Done | 51 tests | 2.0.0 |
+| `identity-registry-v2.clar` | ✅ Done | 35 tests | 2.0.0 |
+| `validation-registry-v2.clar` | ✅ Done | 23 tests | 2.0.0 |
+| `reputation-registry-v2.clar` | ✅ Done | 51 tests | 2.0.0 |
 | Integration tests | ✅ Done | 22 tests | - |
 | Stress tests | ✅ Done | 20 tests | - |
 
@@ -147,9 +147,9 @@
 
 | Contract | Testnet Address |
 |----------|-----------------|
-| Identity Registry | [`ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.identity-registry`](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.identity-registry?chain=testnet) |
-| Reputation Registry | [`ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry`](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry?chain=testnet) |
-| Validation Registry | [`ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry`](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry?chain=testnet) |
+| Identity Registry | [`ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.identity-registry-v2`](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.identity-registry-v2?chain=testnet) |
+| Reputation Registry | [`ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry-v2`](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry-v2?chain=testnet) |
+| Validation Registry | [`ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry-v2`](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry-v2?chain=testnet) |
 
 ## v2.0.0 Quest Completion
 
@@ -225,9 +225,9 @@ Following SIP community review, six phases of improvements were implemented to a
 **Problem**: No formal interface contracts for cross-contract conformance checking.
 
 **Solution**: Created three trait files defining registry interfaces:
-- `contracts/traits/identity-registry-trait.clar` (14 functions)
-- `contracts/traits/reputation-registry-trait.clar` (6 functions)
-- `contracts/traits/validation-registry-trait.clar` (2 functions)
+- `contracts/traits/identity-registry-trait-v2.clar` (14 functions)
+- `contracts/traits/reputation-registry-trait-v2.clar` (6 functions)
+- `contracts/traits/validation-registry-trait-v2.clar` (2 functions)
 
 **Hybrid approach**: Clarity traits require `(response ...)` return types. Public functions and response-wrapped read-only functions included in traits. Raw-return read-only functions (returning `optional`, `uint`, tuples) documented but not trait-enforced.
 

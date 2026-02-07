@@ -42,9 +42,9 @@ Three contracts implementing ERC-8004 spec as chain singletons:
 
 | Contract | Purpose | Status |
 |----------|---------|--------|
-| `identity-registry.clar` | Agent identity as NFT (SIP-009), agent wallet (dual-path auth), metadata | ✅ v2.0.0 |
-| `reputation-registry.clar` | Feedback with signed values (int + decimals), permissionless + self-feedback guard, string tags | ✅ v2.0.0 |
-| `validation-registry.clar` | Progressive validation responses, string tags | ✅ v2.0.0 |
+| `identity-registry-v2.clar` | Agent identity as NFT (SIP-009), agent wallet (dual-path auth), metadata | ✅ v2.0.0 |
+| `reputation-registry-v2.clar` | Feedback with signed values (int + decimals), permissionless + self-feedback guard, string tags | ✅ v2.0.0 |
+| `validation-registry-v2.clar` | Progressive validation responses, string tags | ✅ v2.0.0 |
 
 **v2.0.0 Features**:
 - **NFT Identity**: Native Clarity NFT with SIP-009 trait (transfer, get-owner, get-last-token-id, get-token-uri)
@@ -212,11 +212,11 @@ const accounts = simnet.getAccounts();
 const address1 = accounts.get("wallet_1")!;
 
 // Public function
-const { result } = simnet.callPublicFn("identity-registry", "register", [], address1);
+const { result } = simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 expect(result).toBeOk(uintCV(0n));
 
 // Read-only function
-const { result } = simnet.callReadOnlyFn("identity-registry", "owner-of", [uintCV(0n)], address1);
+const { result } = simnet.callReadOnlyFn("identity-registry-v2", "owner-of", [uintCV(0n)], address1);
 expect(result).toBeSome(Cl.principal(address1));
 ```
 
@@ -228,9 +228,9 @@ Three trait contracts define interfaces for cross-contract conformance:
 
 | Trait | Functions | Notes |
 |-------|-----------|-------|
-| `identity-registry-trait.clar` | 14 functions | All public functions + SIP-009 + is-authorized-or-owner. Requires `(response ...)` return types. |
-| `reputation-registry-trait.clar` | 6 functions | All public state-changing functions (give-feedback, revoke-feedback, approve-client, append-response). |
-| `validation-registry-trait.clar` | 2 functions | All public state-changing functions (validation-request, validation-response). |
+| `identity-registry-trait-v2.clar` | 14 functions | All public functions + SIP-009 + is-authorized-or-owner. Requires `(response ...)` return types. |
+| `reputation-registry-trait-v2.clar` | 6 functions | All public state-changing functions (give-feedback, revoke-feedback, approve-client, append-response). |
+| `validation-registry-trait-v2.clar` | 2 functions | All public state-changing functions (validation-request, validation-response). |
 
 **Implementation**: Each registry declares `(impl-trait .{trait-name}.{trait-name})` for compile-time verification.
 

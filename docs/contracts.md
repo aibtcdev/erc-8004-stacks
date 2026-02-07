@@ -14,9 +14,9 @@ nav_order: 2
 
 | Contract | Purpose |
 |----------|---------|
-| [`identity-registry.clar`](https://github.com/aibtc/erc8004-registry-stacks/blob/master/contracts/identity-registry.clar) | Agent registration with sequential IDs, URIs, and metadata |
-| [`reputation-registry.clar`](https://github.com/aibtc/erc8004-registry-stacks/blob/master/contracts/reputation-registry.clar) | Client feedback with scores, tags, and SIP-018 signatures |
-| [`validation-registry.clar`](https://github.com/aibtc/erc8004-registry-stacks/blob/master/contracts/validation-registry.clar) | Third-party validation requests and responses |
+| [`identity-registry-v2.clar`](https://github.com/aibtc/erc8004-registry-stacks/blob/master/contracts/identity-registry-v2.clar) | Agent registration with sequential IDs, URIs, and metadata |
+| [`reputation-registry-v2.clar`](https://github.com/aibtc/erc8004-registry-stacks/blob/master/contracts/reputation-registry-v2.clar) | Client feedback with scores, tags, and SIP-018 signatures |
+| [`validation-registry-v2.clar`](https://github.com/aibtc/erc8004-registry-stacks/blob/master/contracts/validation-registry-v2.clar) | Third-party validation requests and responses |
 
 ---
 

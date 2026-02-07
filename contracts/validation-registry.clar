@@ -1,9 +1,38 @@
 ;; title: validation-registry
-;; version: 1.0.0
+;; version: 2.0.0
 ;; summary: ERC-8004 Validation Registry - Manages validation requests and responses for agents.
 ;; description: Allows agent owners to request validation from validators, who respond with scores.
+;; auth: All authorization checks use tx-sender. Contract principals acting as validators must use as-contract.
+;;
+;; ERC-8004 Spec Compliance
+;; ========================
+;;
+;; Spec Function/Feature              | Implementation                    | Notes
+;; ------------------------------------|-----------------------------------|------
+;; initialize(identityRegistry)        | Hardcoded .identity-registry      | Deploy-time binding (Clarity convention)
+;; getIdentityRegistry()               | get-identity-registry             | Exact match
+;; validationRequest(validator,        | validation-request                | Exact match
+;;   agentId, requestURI, requestHash) |                                   | Owner/operator auth via is-authorized
+;; Unique requestHash enforced         | ERR_VALIDATION_EXISTS             | Exact match
+;; ValidationRequest event             | SIP-019 print                     | Stacks equivalent of EVM event
+;; validationResponse(requestHash,     | validation-response               | Exact match
+;;   response, responseURI,            |                                   | Only original validator can respond
+;;   responseHash, tag)                |                                   |
+;; response 0-100 range                | asserts! (<= response u100)       | Exact match
+;; Progressive responses               | merge update on existing record   | Exact match (multiple calls per hash)
+;; Running totals for progressive      | agent-summary map with subtract/add | Stacks enhancement: O(1) summary
+;; ValidationResponse event            | SIP-019 print (all spec fields)   | Stacks equivalent of EVM event
+;; Stored: requestHash, validator,     | validations map                   | Exact match + has-response flag
+;;   agentId, response, responseHash,  |                                   |
+;;   tag, lastUpdate                   |                                   |
+;; getValidationStatus(requestHash)    | get-validation-status             | Returns optional (Clarity convention)
+;; getSummary(agentId,                 | get-summary(agent-id)             | Adapted: O(1) running totals, no filters
+;;   validatorAddresses[], tag)        |                                   | Filtered aggregation via SIP-019 indexer
+;; getAgentValidations(agentId)        | get-agent-validations(opt-cursor) | Superset: cursor pagination
+;; getValidatorRequests(validator)      | get-validator-requests(opt-cursor) | Superset: cursor pagination
 
 ;; traits
+(impl-trait .validation-registry-trait.validation-registry-trait)
 ;;
 
 ;; token definitions
@@ -16,7 +45,13 @@
 (define-constant ERR_VALIDATION_EXISTS (err u2003))
 (define-constant ERR_INVALID_VALIDATOR (err u2004))
 (define-constant ERR_INVALID_RESPONSE (err u2005))
-(define-constant VERSION u"1.0.0")
+(define-constant VERSION u"2.0.0")
+
+;; Page size for list pagination (read-only functions)
+;; Set to 14 to stay within mainnet default read_only_call_limit_read_count = 30
+;; Single-read fns: 1 counter + 14 items = 15 reads
+(define-constant PAGE_SIZE u14)
+(define-constant PAGE_INDEX_LIST (list u1 u2 u3 u4 u5 u6 u7 u8 u9 u10 u11 u12 u13 u14))
 ;;
 
 ;; data vars
@@ -30,13 +65,22 @@
     agent-id: uint,
     response: uint,
     response-hash: (buff 32),
-    tag: (buff 32),
-    last-update: uint
+    tag: (string-utf8 64),
+    last-update: uint,
+    has-response: bool
   }
 )
 
-(define-map agent-validations {agent-id: uint} (list 1024 (buff 32)))
-(define-map validator-requests {validator: principal} (list 1024 (buff 32)))
+;; Agent validation tracking with counter+indexed-map pattern
+(define-map agent-validation-count {agent-id: uint} uint)
+(define-map agent-validation-at-index {agent-id: uint, index: uint} (buff 32))
+
+;; Validator request tracking with counter+indexed-map pattern
+(define-map validator-request-count {validator: principal} uint)
+(define-map validator-request-at-index {validator: principal, index: uint} (buff 32))
+
+;; Running totals for O(1) get-summary
+(define-map agent-summary {agent-id: uint} {count: uint, response-total: uint})
 ;;
 
 ;; public functions
@@ -48,9 +92,9 @@
   (request-hash (buff 32))
 )
   (let (
-    (caller contract-caller)
+    (caller tx-sender)
   )
-    ;; Check validator is not zero address (can't check for zero in Clarity, but can check it's not caller)
+    ;; Check validator is not the caller (prevents self-validation)
     (asserts! (not (is-eq validator caller)) ERR_INVALID_VALIDATOR)
     ;; Check caller is authorized (owner or approved operator)
     (asserts! (is-authorized agent-id caller) ERR_NOT_AUTHORIZED)
@@ -64,23 +108,22 @@
         agent-id: agent-id,
         response: u0,
         response-hash: 0x0000000000000000000000000000000000000000000000000000000000000000,
-        tag: 0x0000000000000000000000000000000000000000000000000000000000000000,
-        last-update: stacks-block-height
+        tag: u"",
+        last-update: stacks-block-height,
+        has-response: false
       }
     )
-    ;; Append to agent-validations list
-    (map-set agent-validations
-      {agent-id: agent-id}
-      (unwrap! (as-max-len?
-        (append (default-to (list) (map-get? agent-validations {agent-id: agent-id})) request-hash)
-        u1024) ERR_VALIDATION_EXISTS)
+    ;; Append to agent-validations using counter+indexed-map
+    (let (
+      (agent-current-count (default-to u0 (map-get? agent-validation-count {agent-id: agent-id})))
+      (agent-next-count (+ agent-current-count u1))
+      (validator-current-count (default-to u0 (map-get? validator-request-count {validator: validator})))
+      (validator-next-count (+ validator-current-count u1))
     )
-    ;; Append to validator-requests list
-    (map-set validator-requests
-      {validator: validator}
-      (unwrap! (as-max-len?
-        (append (default-to (list) (map-get? validator-requests {validator: validator})) request-hash)
-        u1024) ERR_VALIDATION_EXISTS)
+      (map-set agent-validation-count {agent-id: agent-id} agent-next-count)
+      (map-set agent-validation-at-index {agent-id: agent-id, index: agent-next-count} request-hash)
+      (map-set validator-request-count {validator: validator} validator-next-count)
+      (map-set validator-request-at-index {validator: validator, index: validator-next-count} request-hash)
     )
     ;; Emit event
     (print {
@@ -101,25 +144,49 @@
   (response uint)
   (response-uri (string-utf8 512))
   (response-hash (buff 32))
-  (tag (buff 32))
+  (tag (string-utf8 64))
 )
   (let (
     (validation (unwrap! (map-get? validations {request-hash: request-hash}) ERR_VALIDATION_NOT_FOUND))
-    (caller contract-caller)
+    (caller tx-sender)
   )
     ;; Check caller is the validator
     (asserts! (is-eq caller (get validator validation)) ERR_NOT_AUTHORIZED)
     ;; Check response is valid (0-100)
     (asserts! (<= response u100) ERR_INVALID_RESPONSE)
-    ;; Update validation record
+    ;; Update validation record (progressive: can be called multiple times)
     (map-set validations
       {request-hash: request-hash}
       (merge validation {
         response: response,
         response-hash: response-hash,
         tag: tag,
-        last-update: stacks-block-height
+        last-update: stacks-block-height,
+        has-response: true
       })
+    )
+    ;; Update running totals
+    (let (
+      (had-response (get has-response validation))
+      (old-response (get response validation))
+      (current-summary (default-to {count: u0, response-total: u0}
+        (map-get? agent-summary {agent-id: (get agent-id validation)})))
+    )
+      (map-set agent-summary
+        {agent-id: (get agent-id validation)}
+        (if had-response
+          ;; Progressive update: subtract old, add new
+          {
+            count: (get count current-summary),
+            response-total: (+ (- (get response-total current-summary) old-response) response)
+          }
+          ;; First response: increment count, add response
+          {
+            count: (+ (get count current-summary) u1),
+            response-total: (+ (get response-total current-summary) response)
+          }
+        )
+      )
     )
     ;; Emit event
     (print {
@@ -145,31 +212,55 @@
   (map-get? validations {request-hash: request-hash})
 )
 
-(define-read-only (get-summary
-  (agent-id uint)
-  (opt-validators (optional (list 200 principal)))
-  (opt-tag (optional (buff 32)))
-)
+(define-read-only (get-summary (agent-id uint))
   (let (
-    (hashes (default-to (list) (map-get? agent-validations {agent-id: agent-id})))
-    (result (fold summary-fold hashes {validators: opt-validators, tag: opt-tag, count: u0, total: u0}))
+    (summary (default-to {count: u0, response-total: u0}
+      (map-get? agent-summary {agent-id: agent-id})))
   )
     {
-      count: (get count result),
-      avg-response: (if (> (get count result) u0)
-        (/ (get total result) (get count result))
+      count: (get count summary),
+      avg-response: (if (> (get count summary) u0)
+        (/ (get response-total summary) (get count summary))
         u0
       )
     }
   )
 )
 
-(define-read-only (get-agent-validations (agent-id uint))
-  (map-get? agent-validations {agent-id: agent-id})
+(define-read-only (get-agent-validations (agent-id uint) (opt-cursor (optional uint)))
+  (let (
+    (total-count (default-to u0 (map-get? agent-validation-count {agent-id: agent-id})))
+    (cursor-offset (default-to u0 opt-cursor))
+    (page-end (+ cursor-offset PAGE_SIZE))
+    (has-more (> total-count page-end))
+    (result (fold build-validation-list-fold
+      PAGE_INDEX_LIST
+      {agent-id: agent-id, cursor-offset: cursor-offset, total-count: total-count, validations: (list)}
+    ))
+  )
+    {
+      validations: (get validations result),
+      cursor: (if has-more (some page-end) none)
+    }
+  )
 )
 
-(define-read-only (get-validator-requests (validator principal))
-  (map-get? validator-requests {validator: validator})
+(define-read-only (get-validator-requests (validator principal) (opt-cursor (optional uint)))
+  (let (
+    (total-count (default-to u0 (map-get? validator-request-count {validator: validator})))
+    (cursor-offset (default-to u0 opt-cursor))
+    (page-end (+ cursor-offset PAGE_SIZE))
+    (has-more (> total-count page-end))
+    (result (fold build-request-list-fold
+      PAGE_INDEX_LIST
+      {validator: validator, cursor-offset: cursor-offset, total-count: total-count, requests: (list)}
+    ))
+  )
+    {
+      requests: (get requests result),
+      cursor: (if has-more (some page-end) none)
+    }
+  )
 )
 
 (define-read-only (get-identity-registry)
@@ -197,33 +288,48 @@
   )
 )
 
-(define-private (summary-fold
-  (request-hash (buff 32))
-  (acc {validators: (optional (list 200 principal)), tag: (optional (buff 32)), count: uint, total: uint})
+;; Helper for building paginated agent validation lists
+(define-private (build-validation-list-fold
+  (idx uint)
+  (acc {agent-id: uint, cursor-offset: uint, total-count: uint, validations: (list 14 (buff 32))})
 )
-  (let (
-    (validation-opt (map-get? validations {request-hash: request-hash}))
-  )
-    (match validation-opt validation
+  (let ((actual-idx (+ idx (get cursor-offset acc))))
+    (if (> actual-idx (get total-count acc))
+      acc
       (let (
-        (matches-validator (match (get validators acc) validators
-          (is-some (index-of? validators (get validator validation)))
-          true))
-        (matches-tag (match (get tag acc) filter-tag
-          (is-eq filter-tag (get tag validation))
-          true))
+        (hash-opt (map-get? agent-validation-at-index {agent-id: (get agent-id acc), index: actual-idx}))
       )
-        (if (and matches-validator matches-tag)
-          {
-            validators: (get validators acc),
-            tag: (get tag acc),
-            count: (+ (get count acc) u1),
-            total: (+ (get total acc) (get response validation))
-          }
+        (match hash-opt hash
+          (match (as-max-len? (append (get validations acc) hash) u14)
+            new-validations (merge acc {validations: new-validations})
+            acc
+          )
           acc
         )
       )
+    )
+  )
+)
+
+;; Helper for building paginated validator request lists
+(define-private (build-request-list-fold
+  (idx uint)
+  (acc {validator: principal, cursor-offset: uint, total-count: uint, requests: (list 14 (buff 32))})
+)
+  (let ((actual-idx (+ idx (get cursor-offset acc))))
+    (if (> actual-idx (get total-count acc))
       acc
+      (let (
+        (hash-opt (map-get? validator-request-at-index {validator: (get validator acc), index: actual-idx}))
+      )
+        (match hash-opt hash
+          (match (as-max-len? (append (get requests acc) hash) u14)
+            new-requests (merge acc {requests: new-requests})
+            acc
+          )
+          acc
+        )
+      )
     )
   )
 )

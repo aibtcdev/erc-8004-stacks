@@ -2,149 +2,281 @@
 
 Implementation of the ERC-8004 protocol for agent discovery and trust through reputation and validation.
 
-### Testnet Contract Addresses
+### Contract Addresses
 
-#### ETH Sepolia
-- **IdentityRegistry**: `0x8004a6090Cd10A7288092483047B097295Fb8847`
-- **ReputationRegistry**: `0x8004B8FD1A363aa02fDC07635C0c5F94f6Af5B7E`
-- **ValidationRegistry**: `0x8004CB39f29c09145F24Ad9dDe2A108C1A2cdfC5`
+#### Ethereum Mainnet
+- **IdentityRegistry**: [`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`](https://etherscan.io/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432)
+- **ReputationRegistry**: [`0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`](https://etherscan.io/address/0x8004BAa17C55a88189AE136b182e5fdA19dE9b63)
+
+#### Ethereum Sepolia
+- **IdentityRegistry**: [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://sepolia.etherscan.io/address/0x8004A818BFB912233c491871b3d84c89A494BD9e)
+- **ReputationRegistry**: [`0x8004B663056A597Dffe9eCcC1965A193B7388713`](https://sepolia.etherscan.io/address/0x8004B663056A597Dffe9eCcC1965A193B7388713)
+
+
+#### Base Mainnet
+- **IdentityRegistry**: [`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`](https://basescan.org/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432)
+- **ReputationRegistry**: [`0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`](https://basescan.org/address/0x8004BAa17C55a88189AE136b182e5fdA19dE9b63)
 
 #### Base Sepolia
-- **IdentityRegistry**: `0x8004AA63c570c570eBF15376c0dB199918BFe9Fb`
-- **ReputationRegistry**: `0x8004bd8daB57f14Ed299135749a5CB5c42d341BF`
-- **ValidationRegistry**: `0x8004C269D0A5647E51E121FeB226200ECE932d55`
+- **IdentityRegistry**: [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://sepolia.basescan.org/address/0x8004A818BFB912233c491871b3d84c89A494BD9e)
+- **ReputationRegistry**: [`0x8004B663056A597Dffe9eCcC1965A193B7388713`](https://sepolia.basescan.org/address/0x8004B663056A597Dffe9eCcC1965A193B7388713)
 
-#### Linea Sepolia
-- **IdentityRegistry**: `0x8004aa7C931bCE1233973a0C6A667f73F66282e7`
-- **ReputationRegistry**: `0x8004bd8483b99310df121c46ED8858616b2Bba02`
-- **ValidationRegistry**: `0x8004c44d1EFdd699B2A26e781eF7F77c56A9a4EB`
+
+#### Polygon Mainnet
+- **IdentityRegistry**: [`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`](https://polygonscan.com/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432)
+- **ReputationRegistry**: [`0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`](https://polygonscan.com/address/0x8004BAa17C55a88189AE136b182e5fdA19dE9b63)
 
 #### Polygon Amoy
-- **IdentityRegistry**: `0x8004ad19E14B9e0654f73353e8a0B600D46C2898`
-- **ReputationRegistry**: `0x8004B12F4C2B42d00c46479e859C92e39044C930`
-- **ValidationRegistry**: `0x8004C11C213ff7BaD36489bcBDF947ba5eee289B`
+- **IdentityRegistry**: [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://amoy.polygonscan.com/address/0x8004A818BFB912233c491871b3d84c89A494BD9e)
+- **ReputationRegistry**: [`0x8004B663056A597Dffe9eCcC1965A193B7388713`](https://amoy.polygonscan.com/address/0x8004B663056A597Dffe9eCcC1965A193B7388713)
 
-#### Hedera Testnet
-- **IdentityRegistry**: `0x4c74ebd72921d537159ed2053f46c12a7d8e5923`
-- **ReputationRegistry**: `0xc565edcba77e3abeade40bfd6cf6bf583b3293e0`
-- **ValidationRegistry**: `0x18df085d85c586e9241e0cd121ca422f571c2da6`
 
-#### HyperEVM Testnet
-- **IdentityRegistry**: `0x8004A9560C0edce880cbD24Ba19646470851C986`
-- **ReputationRegistry**: `0x8004b490779A65D3290a31fD96471122050dF671`
-- **ValidationRegistry**: `0x8004C86198fdB8d8169c0405D510EC86cc7B0551`
+#### Arbitrum Mainnet
+- **IdentityRegistry**: [`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`](https://arbiscan.io/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432)
+- **ReputationRegistry**: [`0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`](https://arbiscan.io/address/0x8004BAa17C55a88189AE136b182e5fdA19dE9b63)
 
-#### SKALE Base Sepolia Testnet
-- **IdentityRegistry**: `0x4fa7900596c9830664406d3796952c59ec4133d9`
-- **ReputationRegistry**: `0x9b9d23a47697691ef1016906d1f8ddfc009e6a69`
-- **ValidationRegistry**: `0x34ae1196b1609e01ebc90b75c802b2ea87203f13`
+#### Arbitrum Testnet
+- **IdentityRegistry**: [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://sepolia.arbiscan.io/address/0x8004A818BFB912233c491871b3d84c89A494BD9e)
+- **ReputationRegistry**: [`0x8004B663056A597Dffe9eCcC1965A193B7388713`](https://sepolia.arbiscan.io/address/0x8004B663056A597Dffe9eCcC1965A193B7388713)
+
+
+#### Celo Mainnet
+- **IdentityRegistry**: [`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`](https://celoscan.io/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432)
+- **ReputationRegistry**: [`0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`](https://celoscan.io/address/0x8004BAa17C55a88189AE136b182e5fdA19dE9b63)
+
+#### Celo Testnet
+- **IdentityRegistry**: [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://sepolia.celoscan.io/address/0x8004A818BFB912233c491871b3d84c89A494BD9e)
+- **ReputationRegistry**: [`0x8004B663056A597Dffe9eCcC1965A193B7388713`](https://sepolia.celoscan.io/address/0x8004B663056A597Dffe9eCcC1965A193B7388713)
+
+
+#### Gnosis Mainnet
+- **IdentityRegistry**: [`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`](https://gnosisscan.io/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432)
+- **ReputationRegistry**: [`0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`](https://gnosisscan.io/address/0x8004BAa17C55a88189AE136b182e5fdA19dE9b63)
+
+
+#### Scroll Mainnet
+- **IdentityRegistry**: [`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`](https://scrollscan.com/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432)
+- **ReputationRegistry**: [`0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`](https://scrollscan.com/address/0x8004BAa17C55a88189AE136b182e5fdA19dE9b63)
+
+#### Scroll Testnet
+- **IdentityRegistry**: [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://sepolia.scrollscan.com/address/0x8004A818BFB912233c491871b3d84c89A494BD9e)
+- **ReputationRegistry**: [`0x8004B663056A597Dffe9eCcC1965A193B7388713`](https://sepolia.scrollscan.com/address/0x8004B663056A597Dffe9eCcC1965A193B7388713)
+
+
+#### Taiko Mainnet
+- **IdentityRegistry**: [`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`](https://taikoscan.io/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432)
+- **ReputationRegistry**: [`0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`](https://taikoscan.io/address/0x8004BAa17C55a88189AE136b182e5fdA19dE9b63)
+
+
+#### Monad Mainnet
+- **IdentityRegistry**: [`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`](https://monadscan.com/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432)
+- **ReputationRegistry**: [`0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`](https://monadscan.com/address/0x8004BAa17C55a88189AE136b182e5fdA19dE9b63)
+
+#### Monad Testnet
+- **IdentityRegistry**: [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://monad-testnet.socialscan.io/address/0x8004a818bfb912233c491871b3d84c89a494bd9e)
+- **ReputationRegistry**: [`0x8004B663056A597Dffe9eCcC1965A193B7388713`](https://monad-testnet.socialscan.io/address/0x8004b663056a597dffe9eccc1965a193b7388713)
+
+
+#### BSC Mainnet
+- **IdentityRegistry**: [`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`](https://bscscan.com/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432)
+- **ReputationRegistry**: [`0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`](https://bscscan.com/address/0x8004BAa17C55a88189AE136b182e5fdA19dE9b63)
+
+#### BSC Testnet
+- **IdentityRegistry**: [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://testnet.bscscan.com/address/0x8004A818BFB912233c491871b3d84c89A494BD9e)
+- **ReputationRegistry**: [`0x8004B663056A597Dffe9eCcC1965A193B7388713`](https://testnet.bscscan.com/address/0x8004B663056A597Dffe9eCcC1965A193B7388713)
+
+
+More chains coming soon...
+
 
 ## About
 
-This project implements **ERC-8004**, a protocol that enables discovering, choosing, and interacting with agents across organizational boundaries without pre-existing trust. It provides three core registries:
+This repository implements **ERC-8004 (Trustless Agents)**: a lightweight set of on-chain registries that make agents discoverable and enable trust signals across organizational boundaries.
 
-- **Identity Registry**: A minimal on-chain handle based on ERC-721 with URIStorage extension that gives every agent a portable, censorship-resistant identifier
-- **Reputation Registry**: A standard interface for posting and fetching feedback signals, enabling composable reputation systems
-- **Validation Registry**: Generic hooks for requesting and recording independent validator checks (e.g., stakers re-running jobs, zkML verifiers, TEE oracles)
+At a high level, ERC-8004 defines three registries:
 
-## Project Structure
+- **Identity Registry**: an ERC-721 registry for agent identities (portable, browsable, transferable).
+- **Reputation Registry**: a standardized interface for publishing and reading feedback signals.
+- **Validation Registry**: hooks for validator smart contracts to publish validation results.
 
-```
-contracts/
-├── IdentityRegistry.sol     - ERC-721 based agent registration
-├── ReputationRegistry.sol   - Feedback and reputation tracking
-└── ValidationRegistry.sol   - Validation request/response system
+The normative spec lives in `ERC8004SPEC.md`.
 
-test/
-└── ERC8004.ts              - Comprehensive test suite
+## Quickstart
 
-ERC8004SPEC.md              - Full protocol specification
-```
-
-## Key Features
-
-### Identity Registry
-- ERC-721 NFT-based agent registration with auto-incrementing agent IDs
-- Token URI points to agent registration file (IPFS, HTTPS, etc.)
-- On-chain metadata storage for key-value pairs (e.g., agentWallet, agentName)
-- Support for metadata during registration
-
-### Reputation Registry
-- Clients can give feedback (0-100 score) with optional tags and off-chain file references
-- Pre-authorization via cryptographic signatures (`feedbackAuth`)
-- Support for feedback revocation and responses
-- On-chain aggregation (count, average score) with filtering by client addresses and tags
-- Multiple feedback entries per client-agent pair
-
-### Validation Registry
-- Agents request validation from specific validators
-- Validators respond with 0-100 scores and optional tags
-- Support for progressive validation states
-- Track all validations per agent and per validator
-- On-chain aggregation with filtering
-
-## Installation
+Install dependencies:
 
 ```shell
 npm install
 ```
 
-## Running Tests
+Run tests:
 
-Run all tests:
 ```shell
 npm test
 ```
 
-Or using Hardhat directly:
+Or via Hardhat:
+
 ```shell
 npx hardhat test
 ```
 
-The test suite includes comprehensive coverage of:
-- Agent registration and metadata management
-- Feedback submission, revocation, and responses
-- FeedbackAuth signature verification (EIP-191)
-- Validation requests and responses
-- Permission controls and access restrictions
-- Summary calculations with filtering
-- Edge cases and error conditions
+## Core concepts (from the spec)
 
-## Development
+### Agent identifier
 
-This project uses:
-- **Hardhat 3** with native Node.js test runner (`node:test`)
-- **Viem** for Ethereum interactions
-- **TypeScript** for type safety
-- **OpenZeppelin Contracts** for ERC-721 implementation
+An agent is identified by:
 
-## Protocol Overview
+- **agentRegistry**: `{namespace}:{chainId}:{identityRegistry}` (e.g., `eip155:11155111:0x...`)
+- **agentId**: the ERC-721 `tokenId` minted by the Identity Registry
 
-### Agent Registration
-Each agent is uniquely identified by:
-- `namespace`: eip155 (for EVM chains)
-- `chainId`: The blockchain network identifier
-- `identityRegistry`: The registry contract address
-- `agentId`: The ERC-721 token ID
+Off-chain payloads (registration files, feedback files, evidence) should include both fields so they can be tied back to the on-chain agent.
 
-### Trust Models
-ERC-8004 supports three pluggable trust models:
-1. **Reputation**: Client feedback and scoring
-2. **Validation**: Stake-secured re-execution, zkML proofs, or TEE oracles
-3. **TEE Attestation**: Trusted Execution Environment verification
+### What ERC-8004 does (and doesn't)
 
-### Security Considerations
-- Pre-authorization mitigates unauthorized feedback but doesn't prevent Sybil attacks
-- On-chain pointers and hashes ensure immutable audit trails
-- Validator incentives and slashing managed by specific validation protocols
-- Reputation aggregation expected to evolve with off-chain services
+- **Discovery**: ERC-8004 makes agents discoverable via an ERC-721 identity whose `tokenURI` points to a registration file.
+- **Trust signals**: ERC-8004 standardizes how reputation and validation signals are posted and queried on-chain.
+- **Not payments**: payment rails are intentionally out-of-scope; the spec shows how payments *can* enrich feedback signals, but ERC-8004 does not mandate a payment system.
+
+## Registries
+
+### Identity Registry (agent discovery)
+
+The Identity Registry is an upgradeable ERC-721 (`ERC721URIStorage`) where:
+
+- **agentURI** (`tokenURI`) points to the agent registration file (e.g., `ipfs://...` or `https://...`).
+- **register** mints a new agent NFT and assigns an `agentId`.
+- **setAgentURI** updates the agent's URI.
+
+#### On-chain metadata
+
+The registry also provides optional on-chain metadata:
+
+- `getMetadata(agentId, metadataKey) -> bytes`
+- `setMetadata(agentId, metadataKey, metadataValue)`
+
+The reserved key **`agentWallet`** is managed specially:
+
+- It is set automatically on registration (initially to the owner's address).
+- It can be updated only after proving control of the new wallet via `setAgentWallet(...)` (EIP-712 / ERC-1271).
+- It is cleared on transfer so a new owner must re-verify.
+- Helpers: `getAgentWallet(agentId)` and `unsetAgentWallet(agentId)`.
+
+#### Agent registration file (recommended shape)
+
+The `agentURI` should resolve to a JSON document that is friendly to NFT tooling (name/description/image) and also advertises agent endpoints. The spec's registration file includes:
+
+- `type`: schema identifier for the registration format
+- `name`, `description`, `image`
+- `services`: a list of endpoints (e.g., A2A agent card URL, MCP endpoint, OASF manifest, ENS name, email)
+- `registrations`: a list of `{ agentRegistry, agentId }` references to bind the file back to on-chain identity
+- `supportedTrust`: optional list such as `reputation`, `crypto-economic`, `tee-attestation`
+
+#### Optional: endpoint domain verification
+
+If an agent advertises an HTTPS endpoint, it can optionally prove domain control by hosting a well-known file (see `ERC8004SPEC.md`). Verifiers can use it to confirm that an endpoint domain is controlled by the same agent identity.
+
+### Reputation Registry (trust signals)
+
+The Reputation Registry stores and exposes feedback signals as a signed fixed-point number:
+
+- `value`: `int128` (signed)
+- `valueDecimals`: `uint8` (0-18)
+
+Everything else is optional metadata (tags, endpoint URI, off-chain payload URI + hash).
+
+#### Interpreting `value` + `valueDecimals`
+
+Treat the pair as a signed decimal number:
+
+- Example: `value=9977`, `valueDecimals=2` -> `99.77`
+- Example: `value=560`, `valueDecimals=0` -> `560`
+
+This allows a single on-chain schema to represent percentages, scores, timings, dollar amounts, etc. (the meaning is conveyed by `tag1`/`tag2` and/or the off-chain file).
+
+#### Give feedback
+
+`giveFeedback(...)` records feedback for an agent. The implementation prevents **self-feedback** from the agent owner or approved operators (checked via the Identity Registry).
+
+#### Read + aggregate
+
+Typical read paths:
+
+- `readFeedback(agentId, clientAddress, feedbackIndex)`
+- `readAllFeedback(agentId, clientAddresses, tag1, tag2, includeRevoked)`
+- `getSummary(agentId, clientAddresses, tag1, tag2)` -> returns `(count, summaryValue, summaryValueDecimals)`
+
+Note: `getSummary` requires `clientAddresses` to be provided (non-empty) to reduce Sybil/spam risk.
+
+#### Responses & revocation
+
+- Clients can revoke their feedback: `revokeFeedback(agentId, feedbackIndex)`
+- Anyone can append responses: `appendResponse(agentId, clientAddress, feedbackIndex, responseURI, responseHash)`
+
+## Suggested end-to-end flow
+
+1. **Register an agent** in the Identity Registry (`register(...)`) and get an `agentId`.
+2. **Publish a registration file** (e.g., on IPFS/HTTPS) and set it as the `agentURI` via `setAgentURI(agentId, ...)`.
+3. (Optional) **Set a verified receiving wallet** via `setAgentWallet(...)` (EIP-712/1271 proof).
+4. **Collect feedback** from users/clients via `giveFeedback(...)` on the Reputation Registry.
+5. **Aggregate trust** in-app using `getSummary(...)` and/or pull raw feedback via `readAllFeedback(...)` for off-chain scoring.
+
+### Validation Registry
+
+> **Warning**
+>
+> The **Validation Registry** portion of the ERC-8004 spec is **still under active update and discussion with the TEE community**. This section will be revised and expanded in a follow-up spec update **later this year**.
+
+The current implementation supports:
+
+- `validationRequest(validatorAddress, agentId, requestURI, requestHash)` (must be called by owner/operator of `agentId`)
+- `validationResponse(requestHash, response, responseURI, responseHash, tag)` (must be called by the requested validator)
+- Read functions: `getValidationStatus`, `getSummary`, `getAgentValidations`, `getValidatorRequests`
+
+## JSON payloads (off-chain)
+
+### Agent registration file (Identity Registry)
+
+The agent's `agentURI` should resolve to a registration file (see `ERC8004SPEC.md`) containing human-friendly metadata plus a list of advertised services/endpoints (e.g., A2A, MCP, OASF, ENS, email).
+
+### Feedback file (optional, Reputation Registry)
+
+The on-chain feedback can optionally reference a richer off-chain JSON payload (again see the spec) that includes:
+
+- `agentRegistry`, `agentId`, `clientAddress`, `createdAt`
+- `value`, `valueDecimals`
+- Optional categorization under namespaces like `mcp`, `a2a`, and `oasf`
+
+Tip: keep the on-chain call minimal (tags + numeric signal), and put verbose context (task transcript, payment proof, artifacts, model/version info) in the off-chain JSON referenced by `feedbackURI`.
+
+## Project structure
+
+```
+contracts/
+├── IdentityRegistryUpgradeable.sol     - ERC-721 based agent registration (upgradeable)
+├── ReputationRegistryUpgradeable.sol   - Feedback + aggregation (upgradeable)
+└── ValidationRegistryUpgradeable.sol   - Validation request/response (upgradeable)
+
+abis/                                  - Contract ABIs for integrations
+ignition/modules/                       - Deployment modules
+scripts/                                - Deployment/upgrade utilities
+test/                                   - Test suite
+ERC8004SPEC.md                           - Protocol spec used as source-of-truth for docs
+```
 
 ## Resources
 
 - [ERC-8004 Full Specification](./ERC8004SPEC.md)
+- [ERC-8004 Website](https://www.8004.org)
 - [Hardhat Documentation](https://hardhat.org/docs)
 - [EIP-721: Non-Fungible Token Standard](https://eips.ethereum.org/EIPS/eip-721)
 
 ## License
 
 CC0 - Public Domain
+
+## Contacts
+
+ERC-8004 is a community effort coordinated by Marco De Rossi (MetaMask) and Davide Crapis (EF), with the co-authorship of Jordan Ellis (Google) and Erik Reppel (Coinbase). Our core team is joined by Leonard Tan (MetaMask), Vitto Rivabella (EF), and Isha Sangani (EF).
+
+Check out our website at [8004.org](https://www.8004.org) and reach out at `team@8004.org`.

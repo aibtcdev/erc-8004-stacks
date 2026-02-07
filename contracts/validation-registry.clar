@@ -3,6 +3,33 @@
 ;; summary: ERC-8004 Validation Registry - Manages validation requests and responses for agents.
 ;; description: Allows agent owners to request validation from validators, who respond with scores.
 ;; auth: All authorization checks use tx-sender. Contract principals acting as validators must use as-contract.
+;;
+;; ERC-8004 Spec Compliance
+;; ========================
+;;
+;; Spec Function/Feature              | Implementation                    | Notes
+;; ------------------------------------|-----------------------------------|------
+;; initialize(identityRegistry)        | Hardcoded .identity-registry      | Deploy-time binding (Clarity convention)
+;; getIdentityRegistry()               | get-identity-registry             | Exact match
+;; validationRequest(validator,        | validation-request                | Exact match
+;;   agentId, requestURI, requestHash) |                                   | Owner/operator auth via is-authorized
+;; Unique requestHash enforced         | ERR_VALIDATION_EXISTS             | Exact match
+;; ValidationRequest event             | SIP-019 print                     | Stacks equivalent of EVM event
+;; validationResponse(requestHash,     | validation-response               | Exact match
+;;   response, responseURI,            |                                   | Only original validator can respond
+;;   responseHash, tag)                |                                   |
+;; response 0-100 range                | asserts! (<= response u100)       | Exact match
+;; Progressive responses               | merge update on existing record   | Exact match (multiple calls per hash)
+;; Running totals for progressive      | agent-summary map with subtract/add | Stacks enhancement: O(1) summary
+;; ValidationResponse event            | SIP-019 print (all spec fields)   | Stacks equivalent of EVM event
+;; Stored: requestHash, validator,     | validations map                   | Exact match + has-response flag
+;;   agentId, response, responseHash,  |                                   |
+;;   tag, lastUpdate                   |                                   |
+;; getValidationStatus(requestHash)    | get-validation-status             | Returns optional (Clarity convention)
+;; getSummary(agentId,                 | get-summary(agent-id)             | Adapted: O(1) running totals, no filters
+;;   validatorAddresses[], tag)        |                                   | Filtered aggregation via SIP-019 indexer
+;; getAgentValidations(agentId)        | get-agent-validations(opt-cursor) | Superset: cursor pagination
+;; getValidatorRequests(validator)      | get-validator-requests(opt-cursor) | Superset: cursor pagination
 
 ;; traits
 (impl-trait .validation-registry-trait.validation-registry-trait)

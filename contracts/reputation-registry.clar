@@ -3,6 +3,44 @@
 ;; summary: ERC-8004 Reputation Registry - Client feedback for agents with SIP-018 and on-chain authorization.
 ;; description: Allows clients to give feedback on agents. Supports both on-chain approval and SIP-018 signed authorization.
 ;; auth: All authorization checks use tx-sender. Contract principals acting as owners/operators must use as-contract.
+;;
+;; ERC-8004 Spec Compliance
+;; ========================
+;;
+;; Spec Function/Feature              | Implementation                    | Notes
+;; ------------------------------------|-----------------------------------|------
+;; initialize(identityRegistry)        | Hardcoded .identity-registry      | Deploy-time binding (Clarity convention)
+;; getIdentityRegistry()               | get-identity-registry             | Exact match
+;; giveFeedback(agentId, value,        | give-feedback                     | Exact match (permissionless)
+;;   valueDecimals, tag1, tag2,        | give-feedback-approved            | Stacks enhancement: on-chain approval path
+;;   endpoint, feedbackURI,            | give-feedback-signed              | Stacks enhancement: SIP-018 signed auth
+;;   feedbackHash)                     |                                   |
+;; valueDecimals 0-18 validation       | asserts! (<= value-decimals u18)  | Exact match
+;; Self-feedback blocked               | Cross-contract is-authorized-or-owner on tx-sender | Exact match
+;; endpoint/feedbackURI/feedbackHash   | Emitted in SIP-019 print only     | Exact match (not stored)
+;; value/valueDecimals/tag1/tag2       | Stored in feedback map            | Exact match
+;; wad-value (WAD normalization)       | Stored per-feedback               | Stacks enhancement: O(1) aggregation
+;; NewFeedback event                   | SIP-019 print (all spec fields)   | Stacks equivalent of EVM event
+;; revokeFeedback(agentId, index)      | revoke-feedback                   | Exact match (client = tx-sender)
+;; FeedbackRevoked event               | SIP-019 print + value/decimals    | Superset (enriched for indexer)
+;; appendResponse(agentId, client,     | append-response                   | Exact match (permissionless)
+;;   index, responseURI, responseHash) |                                   |
+;; ResponseAppended event              | SIP-019 print                     | Stacks equivalent of EVM event
+;; readFeedback(agentId, client, idx)  | read-feedback                     | Returns optional (Clarity convention)
+;; readAllFeedback(agentId,            | read-all-feedback                 | Adapted: global sequence + cursor
+;;   clientAddresses[], tag1, tag2,    |   (opt-tag1, opt-tag2,            | No clientAddresses[] param
+;;   includeRevoked)                   |    include-revoked, opt-cursor)   | Tag filtering on-chain, page size 14
+;; getSummary(agentId,                 | get-summary(agent-id)             | Adapted: O(1) running totals, no filters
+;;   clientAddresses[], tag1, tag2)    |                                   | Filtered aggregation via SIP-019 indexer
+;; getResponseCount(agentId, client,   | get-response-count                | Superset: optional params + cursor
+;;   index, responders[])              |                                   |
+;; getClients(agentId)                 | get-clients(agent-id, opt-cursor) | Superset: cursor pagination
+;; getLastIndex(agentId, client)       | get-last-index                    | Exact match
+;; (no EVM equivalent)                 | approve-client                    | Stacks enhancement: on-chain approval
+;; (no EVM equivalent)                 | get-approved-limit                | Stacks enhancement: query approval
+;; (no EVM equivalent)                 | get-agent-feedback-count          | Stacks enhancement: global count
+;; (no EVM equivalent)                 | get-responders                    | Stacks enhancement: responder list
+;; (no EVM equivalent)                 | get-auth-message-hash             | Stacks enhancement: off-chain tooling
 
 ;; traits
 (impl-trait .reputation-registry-trait.reputation-registry-trait)

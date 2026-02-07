@@ -3,6 +3,36 @@
 ;; summary: ERC-8004 Identity Registry - Registers agent identities with sequential IDs, URIs, and metadata.
 ;; description: Compliant with ERC-8004 spec. Owner or approved operators can update URI/metadata. Single deployment per chain.
 ;; auth: All authorization checks use tx-sender. Contract principals acting as owners/operators must use as-contract.
+;;
+;; ERC-8004 Spec Compliance
+;; ========================
+;;
+;; Spec Function/Feature              | Implementation                    | Notes
+;; ------------------------------------|-----------------------------------|------
+;; ERC-721 NFT standard                | SIP-009 NFT (define-non-fungible-token) | Stacks equivalent
+;; register()                          | register                          | Exact match
+;; register(agentURI)                  | register-with-uri                 | Exact match
+;; register(agentURI, metadata[])      | register-full                     | Exact match
+;; setAgentURI(agentId, newURI)        | set-agent-uri                     | Exact match
+;; getMetadata(agentId, key)           | get-metadata                      | Returns optional (Clarity convention)
+;; setMetadata(agentId, key, value)    | set-metadata                      | Exact match
+;; agentWallet reserved key            | ERR_RESERVED_KEY in set-metadata + register-full | Exact match
+;; agentWallet auto-set on register    | map-set agent-wallets in register | Exact match
+;; setAgentWallet (EIP-712 signature)  | set-agent-wallet-signed (SIP-018) | Stacks equivalent of EIP-712
+;; (no EVM equivalent)                 | set-agent-wallet-direct           | Stacks enhancement: tx-sender path
+;; getAgentWallet(agentId)             | get-agent-wallet                  | Returns optional (Clarity convention)
+;; unsetAgentWallet(agentId)           | unset-agent-wallet                | Exact match
+;; Transfer clears agentWallet         | map-delete in transfer            | Exact match
+;; isAuthorizedOrOwner                 | is-authorized-or-owner            | Exact match (reverts if no agent)
+;; Registered event                    | SIP-019 print                     | Stacks equivalent of EVM event
+;; MetadataSet event                   | SIP-019 print (per-entry in fold) | Stacks equivalent of EVM event
+;; URIUpdated event                    | SIP-019 print                     | Stacks equivalent of EVM event
+;; Transfer event                      | SIP-019 print + native NFT event  | Stacks equivalent of EVM event
+;; ERC-721 getTokenURI                 | get-token-uri (SIP-009)           | string-utf8 512 (wider than ERC-721)
+;; ERC-721 ownerOf                     | get-owner / owner-of              | Exact match
+;; ERC-721 transferFrom                | transfer                          | SIP-009 pattern (sender must be tx-sender)
+;; approve / setApprovalForAll         | set-approval-for-all              | Per-agent operator approval
+;; getApproved / isApprovedForAll      | is-approved-for-all               | Exact match
 
 ;; traits
 (define-trait nft-trait

@@ -355,8 +355,19 @@
     )
       (if (is-eq (get key entry) RESERVED_KEY_AGENT_WALLET)
         {agent-id: aid, success: false, reserved-key-found: true}
-        (begin
-          (map-set metadata {agent-id: aid, key: (get key entry)} (get value entry))
+        (let (
+          (k (get key entry))
+          (v (get value entry))
+        )
+          (map-set metadata {agent-id: aid, key: k} v)
+          (print {
+            notification: "identity-registry/MetadataSet",
+            payload: {
+              agent-id: aid,
+              key: k,
+              value-len: (len v)
+            }
+          })
           {agent-id: aid, success: true, reserved-key-found: false}
         )
       )

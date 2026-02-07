@@ -50,6 +50,9 @@
 ;; Validator request tracking with counter+indexed-map pattern
 (define-map validator-request-count {validator: principal} uint)
 (define-map validator-request-at-index {validator: principal, index: uint} (buff 32))
+
+;; Running totals for O(1) get-summary
+(define-map agent-summary {agent-id: uint} {count: uint, response-total: uint})
 ;;
 
 ;; public functions
@@ -134,6 +137,29 @@
         has-response: true
       })
     )
+    ;; Update running totals
+    (let (
+      (had-response (get has-response validation))
+      (old-response (get response validation))
+      (current-summary (default-to {count: u0, response-total: u0}
+        (map-get? agent-summary {agent-id: (get agent-id validation)})))
+    )
+      (map-set agent-summary
+        {agent-id: (get agent-id validation)}
+        (if had-response
+          ;; Progressive update: subtract old, add new
+          {
+            count: (get count current-summary),
+            response-total: (+ (- (get response-total current-summary) old-response) response)
+          }
+          ;; First response: increment count, add response
+          {
+            count: (+ (get count current-summary) u1),
+            response-total: (+ (get response-total current-summary) response)
+          }
+        )
+      )
+    )
     ;; Emit event
     (print {
       notification: "validation-registry/ValidationResponse",
@@ -158,20 +184,15 @@
   (map-get? validations {request-hash: request-hash})
 )
 
-(define-read-only (get-summary
-  (agent-id uint)
-  (opt-validators (optional (list 200 principal)))
-  (opt-tag (optional (string-utf8 64)))
-)
+(define-read-only (get-summary (agent-id uint))
   (let (
-    ;; Get first page of validations (up to 15 hashes)
-    (hashes (get validations (get-agent-validations agent-id none)))
-    (result (fold summary-fold hashes {validators: opt-validators, tag: opt-tag, count: u0, total: u0}))
+    (summary (default-to {count: u0, response-total: u0}
+      (map-get? agent-summary {agent-id: agent-id})))
   )
     {
-      count: (get count result),
-      avg-response: (if (> (get count result) u0)
-        (/ (get total result) (get count result))
+      count: (get count summary),
+      avg-response: (if (> (get count summary) u0)
+        (/ (get response-total summary) (get count summary))
         u0
       )
     }
@@ -235,38 +256,6 @@
         (contract-call? .identity-registry is-approved-for-all agent-id caller)
       )
       false
-    )
-  )
-)
-
-(define-private (summary-fold
-  (request-hash (buff 32))
-  (acc {validators: (optional (list 200 principal)), tag: (optional (string-utf8 64)), count: uint, total: uint})
-)
-  (let (
-    (validation-opt (map-get? validations {request-hash: request-hash}))
-  )
-    (match validation-opt validation
-      (let (
-        (matches-validator (match (get validators acc) validators
-          (is-some (index-of? validators (get validator validation)))
-          true))
-        (matches-tag (match (get tag acc) filter-tag
-          (is-eq filter-tag (get tag validation))
-          true))
-        (has-response (get has-response validation))
-      )
-        (if (and matches-validator matches-tag has-response)
-          {
-            validators: (get validators acc),
-            tag: (get tag acc),
-            count: (+ (get count acc) u1),
-            total: (+ (get total acc) (get response validation))
-          }
-          acc
-        )
-      )
-      acc
     )
   )
 )

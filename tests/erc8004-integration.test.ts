@@ -89,6 +89,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
       Cl.tuple({
         value: Cl.int(85),
         "value-decimals": Cl.uint(0),
+        "wad-value": Cl.int(85000000000000000000n),
         tag1: tag1,
         tag2: tag2,
         "is-revoked": Cl.bool(false),
@@ -99,12 +100,12 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     const summaryResult = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(client1)]), noneCV(), noneCV(), noneCV()],
+      [uintCV(agentId)],
       deployer
     );
     const summary = summaryResult.result as any;
     expect(summary.value.count.value).toBe(1n);
-    expect(summary.value["summary-value"].value).toBe(85n);
+    expect(summary.value["summary-value"].value).toBe(85000000000000000000n);
   });
 
   it("complete flow: register → multiple feedbacks → revoke → summary excludes revoked", () => {
@@ -147,12 +148,12 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     let summaryResult = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(client1)]), noneCV(), noneCV(), noneCV()],
+      [uintCV(agentId)],
       deployer
     );
     let summary = summaryResult.result as any;
     expect(summary.value.count.value).toBe(3n);
-    expect(summary.value["summary-value"].value).toBe(90n);
+    expect(summary.value["summary-value"].value).toBe(90000000000000000000n);
 
     // Revoke feedback #2
     const revokeResult = simnet.callPublicFn(
@@ -167,12 +168,12 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     summaryResult = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId), Cl.list([Cl.principal(client1)]), noneCV(), noneCV(), noneCV()],
+      [uintCV(agentId)],
       deployer
     );
     summary = summaryResult.result as any;
     expect(summary.value.count.value).toBe(2n);
-    expect(summary.value["summary-value"].value).toBe(90n);
+    expect(summary.value["summary-value"].value).toBe(90000000000000000000n);
   });
 
   it("complete flow: register → feedback → append response", () => {
@@ -970,17 +971,12 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
     const summaryResult = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [
-        uintCV(agentId),
-        Cl.list([Cl.principal(client1), Cl.principal(client2), Cl.principal(validator)]),
-        noneCV(),
-        noneCV(),
-        noneCV()
-      ],
+      [uintCV(agentId)],
       deployer
     );
     const summary = summaryResult.result as any;
     expect(summary.value.count.value).toBe(3n);
+    expect(summary.value["summary-value-decimals"].value).toBe(18n);
   });
 
   it("Self-feedback blocked on all paths: owner and operator rejected", () => {
@@ -1097,20 +1093,14 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
     const summaryResult = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [
-        uintCV(agentId),
-        Cl.list([Cl.principal(client1), Cl.principal(client2), Cl.principal(validator)]),
-        noneCV(),
-        noneCV(),
-        noneCV()
-      ],
+      [uintCV(agentId)],
       deployer
     );
     const summary = summaryResult.result as any;
     expect(summary.value.count.value).toBe(3n);
-    // The actual value depends on WAD implementation and mode calculation
-    // We verify count is correct and value is in reasonable range
+    // The actual value is in WAD precision (18 decimals)
     expect(summary.value["summary-value"].value).toBeGreaterThan(0n);
+    expect(summary.value["summary-value-decimals"].value).toBe(18n);
   });
 
   it("String tags in filtering across reputation and validation", () => {
@@ -1140,21 +1130,16 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
       validator
     );
 
-    // Get summary filtered by "uptime" tag
+    // Get reputation summary (unfiltered - tag filtering is indexer's job)
     const uptimeSummary = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [
-        uintCV(agentId),
-        Cl.list([Cl.principal(client1), Cl.principal(client2), Cl.principal(validator)]),
-        someCV(Cl.stringUtf8("uptime")),
-        noneCV(),
-        noneCV()
-      ],
+      [uintCV(agentId)],
       deployer
     );
     const summary1 = uptimeSummary.result as any;
-    expect(summary1.value.count.value).toBe(1n); // Only uptime-tagged feedback
+    expect(summary1.value.count.value).toBe(3n); // All feedback (tag filtering is indexer's job)
+    expect(summary1.value["summary-value-decimals"].value).toBe(18n);
 
     // Request validations with string tags
     const reqHash1 = bufferCV(hashFromString("req1"));

@@ -503,20 +503,14 @@ describe("Reputation Registry - Stress Tests", () => {
       const result = simnet.callReadOnlyFn(
         "reputation-registry",
         "get-summary",
-        [
-          uintCV(agentId),
-          listCV([principalCV(wallet2), principalCV(wallet3), principalCV(wallet4)]),
-          noneCV(), // opt-tag1
-          noneCV(), // opt-tag2
-          noneCV(), // opt-cursor
-        ],
+        [uintCV(agentId)],
         deployer
       );
 
       // assert
       const data = result.result as any;
       expect(data.value.count.value).toBe(15n); // 3 clients * 5 feedbacks
-      expect(data.value.cursor.type).toBe("none");
+      expect(data.value["summary-value-decimals"].value).toBe(18n);
     });
 
     it("handles mid scale (7 clients x 5 feedbacks)", () => {
@@ -541,19 +535,14 @@ describe("Reputation Registry - Stress Tests", () => {
       const result = simnet.callReadOnlyFn(
         "reputation-registry",
         "get-summary",
-        [
-          uintCV(agentId),
-          listCV(validClients.map((w) => principalCV(w))),
-          noneCV(),
-          noneCV(),
-          noneCV(),
-        ],
+        [uintCV(agentId)],
         deployer
       );
 
       // assert
       const data = result.result as any;
       expect(data.value.count.value).toBe(35n); // 7 wallets * 5 feedbacks each
+      expect(data.value["summary-value-decimals"].value).toBe(18n);
     });
 
     it("handles high scale (7 clients x 10 feedbacks)", () => {
@@ -578,19 +567,14 @@ describe("Reputation Registry - Stress Tests", () => {
       const result = simnet.callReadOnlyFn(
         "reputation-registry",
         "get-summary",
-        [
-          uintCV(agentId),
-          listCV(validClients.map((w) => principalCV(w))),
-          noneCV(),
-          noneCV(),
-          noneCV(),
-        ],
+        [uintCV(agentId)],
         deployer
       );
 
       // assert
       const data = result.result as any;
       expect(data.value.count.value).toBe(70n); // 7 wallets * 10 feedbacks each
+      expect(data.value["summary-value-decimals"].value).toBe(18n);
     });
   });
 });

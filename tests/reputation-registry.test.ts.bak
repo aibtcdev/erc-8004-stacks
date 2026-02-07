@@ -908,16 +908,17 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId)],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), noneCV(), noneCV(), noneCV()],
       deployer
     );
 
-    // assert - average in WAD precision = 88.333... * 10^18
+    // assert - average = (80 + 90 + 95) / 3 = 88 (truncated)
     expect(result).toStrictEqual(
       Cl.tuple({
         count: uintCV(3n),
-        "summary-value": Cl.int(88333333333333333333n),
-        "summary-value-decimals": Cl.uint(18),
+        "summary-value": Cl.int(88),
+        "summary-value-decimals": Cl.uint(0),
+        cursor: noneCV(),
       })
     );
   });
@@ -951,16 +952,17 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId)],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), noneCV(), noneCV(), noneCV()],
       deployer
     );
 
-    // assert - average in WAD precision = -20 * 10^18
+    // assert - average = (-10 + -20 + -30) / 3 = -20
     expect(result).toStrictEqual(
       Cl.tuple({
         count: uintCV(3n),
-        "summary-value": Cl.int(-20000000000000000000n),
-        "summary-value-decimals": Cl.uint(18),
+        "summary-value": Cl.int(-20),
+        "summary-value-decimals": Cl.uint(0),
+        cursor: noneCV(),
       })
     );
   });
@@ -1001,16 +1003,17 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId)],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), noneCV(), noneCV(), noneCV()],
       deployer
     );
 
-    // assert - WAD average = 60523333333333333333 (WAD precision, decimals=18)
+    // assert
     expect(result).toStrictEqual(
       Cl.tuple({
         count: uintCV(3n),
-        "summary-value": Cl.int(60523333333333333333n),
-        "summary-value-decimals": Cl.uint(18),
+        "summary-value": Cl.int(60),
+        "summary-value-decimals": Cl.uint(0),
+        cursor: noneCV(),
       })
     );
   });
@@ -1045,16 +1048,17 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId)],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), noneCV(), noneCV(), noneCV()],
       deployer
     );
 
-    // assert - WAD average = 90 * 10^18 (decimals=18 always in WAD)
+    // assert - mode decimals should be 2
     expect(result).toStrictEqual(
       Cl.tuple({
         count: uintCV(3n),
-        "summary-value": Cl.int(90000000000000000000n),
-        "summary-value-decimals": Cl.uint(18),
+        "summary-value": Cl.int(9000),
+        "summary-value-decimals": Cl.uint(2),
+        cursor: noneCV(),
       })
     );
   });
@@ -1091,24 +1095,88 @@ describe("reputation-registry read-only functions", () => {
     const { result } = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-summary",
-      [uintCV(agentId)],
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), noneCV(), noneCV(), noneCV()],
       deployer
     );
 
-    // assert - WAD average = 86.666... * 10^18 (decimals=18 always in WAD)
+    // assert - mode decimals should be 1
+    const resultTuple = result as any;
+    expect(resultTuple.value["summary-value-decimals"].value).toBe(1n);
+    expect(resultTuple.value.count.value).toBe(3n);
+  });
+
+  it("get-summary() with tag filters and mixed precision", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    const tag1 = Cl.stringUtf8("performance");
+    const tag2 = Cl.stringUtf8("quality");
+    const otherTag = Cl.stringUtf8("other");
+    const hash = bufferCV(hashFromString("feedback-hash"));
+    // Two matching feedback with mixed precision
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(90), Cl.uint(0), tag1, tag2, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri1"), hash],
+      address2
+    );
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(9500), Cl.uint(2), tag1, tag2, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri2"), hash],
+      address3
+    );
+    // Non-matching feedback (different tags)
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(50), Cl.uint(0), otherTag, otherTag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri3"), hash],
+      address4
+    );
+
+    // act - filter by tag1 and tag2
+    const { result } = simnet.callReadOnlyFn(
+      "reputation-registry",
+      "get-summary",
+      [uintCV(agentId), Cl.list([Cl.principal(address2), Cl.principal(address3), Cl.principal(address4)]), someCV(tag1), someCV(tag2), noneCV()],
+      deployer
+    );
+
+    // assert - only first two should match, average normalized with WAD
+    const resultTuple = result as any;
+    expect(resultTuple.value.count.value).toBe(2n);
+  });
+
+  it("get-summary() returns zeros when no matching feedback", () => {
+    // arrange
+    const agentId = registerAgent(address1);
+    const tag = Cl.stringUtf8("exists");
+    const nonMatchingTag = Cl.stringUtf8("nonexistent");
+    const hash = bufferCV(hashFromString("feedback-hash"));
+    simnet.callPublicFn(
+      "reputation-registry",
+      "give-feedback",
+      [uintCV(agentId), Cl.int(80), Cl.uint(0), tag, tag, stringUtf8CV("https://example.com/api"), stringUtf8CV("uri1"), hash],
+      address2
+    );
+
+    // act - filter with non-matching tag
+    const { result } = simnet.callReadOnlyFn(
+      "reputation-registry",
+      "get-summary",
+      [uintCV(agentId), Cl.list([Cl.principal(address2)]), someCV(nonMatchingTag), someCV(nonMatchingTag), noneCV()],
+      deployer
+    );
+
+    // assert
     expect(result).toStrictEqual(
       Cl.tuple({
-        count: uintCV(3n),
-        "summary-value": Cl.int(86666666666666666666n),
-        "summary-value-decimals": Cl.uint(18),
+        count: uintCV(0n),
+        "summary-value": Cl.int(0),
+        "summary-value-decimals": Cl.uint(0),
+        cursor: noneCV(),
       })
     );
   });
-
-  // Tag filtering is now an off-chain indexer concern, removed from on-chain get-summary
-
-  // NOTE: Tests for tag filtering removed - this is now handled by off-chain indexers
-  // via read-all-feedback with tag filters for reconstruction
 
   it("get-identity-registry() returns identity registry principal", () => {
     // act

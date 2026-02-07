@@ -30,7 +30,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
   it("complete flow: register agent → approve client → give feedback → read feedback", () => {
     // Step 1: Register an agent
     const registerResult = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "register-with-uri",
       [stringUtf8CV("ipfs://agent-metadata")],
       agentOwner
@@ -40,7 +40,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
 
     // Step 2: Verify agent exists via owner-of
     const ownerResult = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "owner-of",
       [uintCV(agentId)],
       deployer
@@ -49,7 +49,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
 
     // Step 3: Approve a client to give feedback (limit: 5 feedbacks)
     const approveResult = simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "approve-client",
       [uintCV(agentId), principalCV(client1), uintCV(5n)],
       agentOwner
@@ -62,7 +62,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     const feedbackHash = bufferCV(hashFromString("feedback-content-hash"));
 
     const feedbackResult = simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [
         uintCV(agentId),
@@ -80,7 +80,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
 
     // Step 5: Read the feedback back
     const readResult = simnet.callReadOnlyFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "read-feedback",
       [uintCV(agentId), principalCV(client1), uintCV(1n)],
       deployer
@@ -98,7 +98,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
 
     // Step 6: Get summary
     const summaryResult = simnet.callReadOnlyFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "get-summary",
       [uintCV(agentId)],
       deployer
@@ -110,12 +110,12 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
 
   it("complete flow: register → multiple feedbacks → revoke → summary excludes revoked", () => {
     // Register agent
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     // Approve client for multiple feedbacks
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "approve-client",
       [uintCV(agentId), principalCV(client1), uintCV(10n)],
       agentOwner
@@ -126,19 +126,19 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
 
     // Give 3 feedbacks
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [uintCV(agentId), Cl.int(80), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("uri1"), hash],
       client1
     );
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [uintCV(agentId), Cl.int(90), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("uri2"), hash],
       client1
     );
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [uintCV(agentId), Cl.int(100), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("uri3"), hash],
       client1
@@ -146,7 +146,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
 
     // Check summary before revoke: (80 + 90 + 100) / 3 = 90
     let summaryResult = simnet.callReadOnlyFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "get-summary",
       [uintCV(agentId)],
       deployer
@@ -157,7 +157,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
 
     // Revoke feedback #2
     const revokeResult = simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "revoke-feedback",
       [uintCV(agentId), uintCV(2n)],
       client1
@@ -166,7 +166,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
 
     // Summary after revoke: (80 + 100) / 2 = 90
     summaryResult = simnet.callReadOnlyFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "get-summary",
       [uintCV(agentId)],
       deployer
@@ -178,12 +178,12 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
 
   it("complete flow: register → feedback → append response", () => {
     // Register agent
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     // Approve and give feedback
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "approve-client",
       [uintCV(agentId), principalCV(client1), uintCV(5n)],
       agentOwner
@@ -192,7 +192,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     const emptyTag = Cl.stringUtf8("");
     const hash = bufferCV(hashFromString("hash"));
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [uintCV(agentId), Cl.int(50), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("bad-service"), hash],
       client1
@@ -201,7 +201,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
     // Agent owner responds to feedback
     const responseHash = bufferCV(hashFromString("response-hash"));
     const responseResult = simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "append-response",
       [
         uintCV(agentId),
@@ -216,7 +216,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
 
     // Check response count
     const countResult = simnet.callReadOnlyFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "get-response-count-single",
       [uintCV(agentId), principalCV(client1), uintCV(1n), principalCV(agentOwner)],
       deployer
@@ -225,7 +225,7 @@ describe("ERC-8004 Integration: Registration → Feedback Flow", () => {
 
     // Get responders list
     const respondersResult = simnet.callReadOnlyFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "get-responders",
       [uintCV(agentId), principalCV(client1), uintCV(1n), Cl.none()],
       deployer
@@ -243,7 +243,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
   it("complete flow: register agent → request validation → respond", () => {
     // Step 1: Register an agent
     const registerResult = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "register-with-uri",
       [stringUtf8CV("ipfs://agent-for-validation")],
       agentOwner
@@ -254,7 +254,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
     // Step 2: Agent owner requests validation
     const requestHash = bufferCV(hashFromString("validation-request-1"));
     const requestResult = simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [
         principalCV(validator),
@@ -268,7 +268,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
 
     // Step 3: Check validation status (pending)
     let statusResult = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-validation-status",
       [requestHash],
       deployer
@@ -280,7 +280,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
     const responseHash = bufferCV(hashFromString("validation-response-1"));
     const tag = stringUtf8CV("security-audit");
     const responseResult = simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [
         requestHash,
@@ -295,7 +295,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
 
     // Step 5: Check validation status (approved)
     statusResult = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-validation-status",
       [requestHash],
       deployer
@@ -308,7 +308,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
 
   it("complete flow: multiple validations → get summary", () => {
     // Register agent
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     const tag = stringUtf8CV("audit");
@@ -317,7 +317,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
     for (let i = 1; i <= 3; i++) {
       const reqHash = bufferCV(hashFromString(`request-${i}`));
       simnet.callPublicFn(
-        "validation-registry",
+        "validation-registry-v2",
         "validation-request",
         [principalCV(validator), uintCV(agentId), stringUtf8CV(`uri-${i}`), reqHash],
         agentOwner
@@ -326,7 +326,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
       // Validator responds (1 = approved, 2 = rejected)
       const response = i === 2 ? 2n : 1n; // Second one rejected
       simnet.callPublicFn(
-        "validation-registry",
+        "validation-registry-v2",
         "validation-response",
         [reqHash, uintCV(response), stringUtf8CV(`response-${i}`), bufferCV(hashFromString(`resp-${i}`)), tag],
         validator
@@ -335,7 +335,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
 
     // Get summary - should have 3 validations
     const summaryResult = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-summary",
       [uintCV(agentId)],
       deployer
@@ -347,7 +347,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
 
     // Get agent's validations
     const validationsResult = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-agent-validations",
       [uintCV(agentId), Cl.none()],
       deployer
@@ -359,13 +359,13 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
 
   it("progressive validation: validator updates response multiple times", () => {
     // Register agent
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     // Request validation
     const requestHash = bufferCV(hashFromString("progressive-validation"));
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(validator), uintCV(agentId), stringUtf8CV("ipfs://request"), requestHash],
       agentOwner
@@ -374,7 +374,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
     // Step 1: Preliminary response (50% confidence, preliminary tag)
     const responseHash1 = bufferCV(hashFromString("response-1"));
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [requestHash, uintCV(50n), stringUtf8CV("ipfs://preliminary"), responseHash1, stringUtf8CV("preliminary")],
       validator
@@ -382,7 +382,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
 
     // Check status after preliminary
     let statusResult = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-validation-status",
       [requestHash],
       deployer
@@ -395,7 +395,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
     // Step 2: Final response (85% confidence, final tag)
     const responseHash2 = bufferCV(hashFromString("response-2"));
     const finalResult = simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [requestHash, uintCV(85n), stringUtf8CV("ipfs://final"), responseHash2, stringUtf8CV("final")],
       validator
@@ -404,7 +404,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
 
     // Check final status - should have updated values
     statusResult = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-validation-status",
       [requestHash],
       deployer
@@ -417,7 +417,7 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
 
     // Verify summary reflects final score
     const summaryResult = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-summary",
       [uintCV(agentId)],
       deployer
@@ -431,12 +431,12 @@ describe("ERC-8004 Integration: Registration → Validation Flow", () => {
 describe("ERC-8004 Integration: Operator Permissions", () => {
   it("operator can approve clients and request validations on behalf of owner", () => {
     // Register agent
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     // Set operator approval
     const approvalResult = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-approval-for-all",
       [uintCV(agentId), principalCV(operator), Cl.bool(true)],
       agentOwner
@@ -445,7 +445,7 @@ describe("ERC-8004 Integration: Operator Permissions", () => {
 
     // Operator approves a client for feedback
     const clientApprovalResult = simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "approve-client",
       [uintCV(agentId), principalCV(client1), uintCV(10n)],
       operator
@@ -455,7 +455,7 @@ describe("ERC-8004 Integration: Operator Permissions", () => {
     // Operator requests a validation
     const requestHash = bufferCV(hashFromString("operator-request"));
     const validationResult = simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(validator), uintCV(agentId), stringUtf8CV("operator-req"), requestHash],
       operator
@@ -466,7 +466,7 @@ describe("ERC-8004 Integration: Operator Permissions", () => {
     const emptyTag = Cl.stringUtf8("");
     const hash = bufferCV(hashFromString("hash"));
     const feedbackResult = simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [uintCV(agentId), Cl.int(95), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("great"), hash],
       client1
@@ -476,14 +476,14 @@ describe("ERC-8004 Integration: Operator Permissions", () => {
 });
 
 describe("ERC-8004 Integration: Cross-Contract Authorization", () => {
-  it("reputation-registry correctly checks identity-registry for ownership", () => {
+  it("reputation-registry-v2 correctly checks identity-registry-v2 for ownership", () => {
     // Register agent
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     // Unauthorized user cannot approve clients
     const unauthorizedApproval = simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "approve-client",
       [uintCV(agentId), principalCV(client1), uintCV(5n)],
       client2 // Not owner or operator
@@ -491,15 +491,15 @@ describe("ERC-8004 Integration: Cross-Contract Authorization", () => {
     expect(unauthorizedApproval.result).toBeErr(uintCV(3000n)); // ERR_NOT_AUTHORIZED
   });
 
-  it("validation-registry correctly checks identity-registry for ownership", () => {
+  it("validation-registry-v2 correctly checks identity-registry-v2 for ownership", () => {
     // Register agent
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     // Unauthorized user cannot request validations
     const requestHash = bufferCV(hashFromString("unauthorized-request"));
     const unauthorizedRequest = simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(validator), uintCV(agentId), stringUtf8CV("bad"), requestHash],
       client2 // Not owner or operator
@@ -509,12 +509,12 @@ describe("ERC-8004 Integration: Cross-Contract Authorization", () => {
 
   it("self-feedback is prevented via cross-contract check", () => {
     // Register agent
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     // Owner tries to approve themselves
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "approve-client",
       [uintCV(agentId), principalCV(agentOwner), uintCV(5n)],
       agentOwner
@@ -524,7 +524,7 @@ describe("ERC-8004 Integration: Cross-Contract Authorization", () => {
     const emptyTag = Cl.stringUtf8("");
     const hash = bufferCV(hashFromString("self-feedback"));
     const selfFeedback = simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [uintCV(agentId), Cl.int(100), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("great"), hash],
       agentOwner
@@ -536,18 +536,18 @@ describe("ERC-8004 Integration: Cross-Contract Authorization", () => {
 describe("ERC-8004 Integration: Read-All-Feedback", () => {
   it("read-all-feedback returns all feedback for an agent", () => {
     // Register agent
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     // Approve two clients
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "approve-client",
       [uintCV(agentId), principalCV(client1), uintCV(5n)],
       agentOwner
     );
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "approve-client",
       [uintCV(agentId), principalCV(client2), uintCV(5n)],
       agentOwner
@@ -559,13 +559,13 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
 
     // Client 1 gives 2 feedbacks
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [uintCV(agentId), Cl.int(80), Cl.uint(0), tag1, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("c1-1"), hash],
       client1
     );
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [uintCV(agentId), Cl.int(90), Cl.uint(0), tag1, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("c1-2"), hash],
       client1
@@ -573,7 +573,7 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
 
     // Client 2 gives 1 feedback
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [uintCV(agentId), Cl.int(70), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("c2-1"), hash],
       client2
@@ -581,7 +581,7 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
 
     // Read all feedback
     const result = simnet.callReadOnlyFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "read-all-feedback",
       [uintCV(agentId), noneCV(), noneCV(), Cl.bool(false), noneCV()],
       deployer
@@ -592,12 +592,12 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
 
   it("read-all-feedback filters by tag", () => {
     // Register agent
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     // Approve client
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "approve-client",
       [uintCV(agentId), principalCV(client1), uintCV(10n)],
       agentOwner
@@ -610,19 +610,19 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
 
     // Give feedbacks with different tags
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [uintCV(agentId), Cl.int(80), Cl.uint(0), qualityTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("q1"), hash],
       client1
     );
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [uintCV(agentId), Cl.int(90), Cl.uint(0), speedTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("s1"), hash],
       client1
     );
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [uintCV(agentId), Cl.int(85), Cl.uint(0), qualityTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("q2"), hash],
       client1
@@ -630,7 +630,7 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
 
     // Read all with quality tag filter
     const result = simnet.callReadOnlyFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "read-all-feedback",
       [uintCV(agentId), someCV(qualityTag), noneCV(), Cl.bool(false), noneCV()],
       deployer
@@ -641,12 +641,12 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
 
   it("read-all-feedback respects include-revoked flag", () => {
     // Register agent
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     // Approve client
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "approve-client",
       [uintCV(agentId), principalCV(client1), uintCV(10n)],
       agentOwner
@@ -657,19 +657,19 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
 
     // Give 3 feedbacks
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [uintCV(agentId), Cl.int(80), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("f1"), hash],
       client1
     );
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [uintCV(agentId), Cl.int(90), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("f2"), hash],
       client1
     );
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [uintCV(agentId), Cl.int(100), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("f3"), hash],
       client1
@@ -677,7 +677,7 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
 
     // Revoke feedback #2
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "revoke-feedback",
       [uintCV(agentId), uintCV(2n)],
       client1
@@ -685,7 +685,7 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
 
     // Read without revoked
     let result = simnet.callReadOnlyFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "read-all-feedback",
       [uintCV(agentId), noneCV(), noneCV(), Cl.bool(false), noneCV()],
       deployer
@@ -695,7 +695,7 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
 
     // Read with revoked included
     result = simnet.callReadOnlyFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "read-all-feedback",
       [uintCV(agentId), noneCV(), noneCV(), Cl.bool(true), noneCV()],
       deployer
@@ -706,12 +706,12 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
 
   it("get-agent-feedback-count returns total feedback count", () => {
     // Register agent
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     // Initial count should be 0
     let countResult = simnet.callReadOnlyFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "get-agent-feedback-count",
       [uintCV(agentId)],
       deployer
@@ -720,7 +720,7 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
 
     // Approve client and give 3 feedbacks
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "approve-client",
       [uintCV(agentId), principalCV(client1), uintCV(10n)],
       agentOwner
@@ -731,7 +731,7 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
 
     for (let i = 0; i < 3; i++) {
       simnet.callPublicFn(
-        "reputation-registry",
+        "reputation-registry-v2",
         "give-feedback-approved",
         [uintCV(agentId), Cl.int(80), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV(`f${i}`), hash],
         client1
@@ -740,7 +740,7 @@ describe("ERC-8004 Integration: Read-All-Feedback", () => {
 
     // Count should be 3
     countResult = simnet.callReadOnlyFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "get-agent-feedback-count",
       [uintCV(agentId)],
       deployer
@@ -753,7 +753,7 @@ describe("ERC-8004 Integration: v2.0.0 NFT and Agent Wallet Features", () => {
   it("NFT lifecycle: register -> transfer -> verify ownership change", () => {
     // Register agent with wallet_1
     const registerResult = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "register",
       [],
       agentOwner
@@ -763,7 +763,7 @@ describe("ERC-8004 Integration: v2.0.0 NFT and Agent Wallet Features", () => {
 
     // Verify initial owner
     let ownerResult = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "owner-of",
       [uintCV(agentId)],
       deployer
@@ -772,7 +772,7 @@ describe("ERC-8004 Integration: v2.0.0 NFT and Agent Wallet Features", () => {
 
     // Transfer to wallet_2
     const transferResult = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "transfer",
       [uintCV(agentId), principalCV(agentOwner), principalCV(client1)],
       agentOwner
@@ -781,7 +781,7 @@ describe("ERC-8004 Integration: v2.0.0 NFT and Agent Wallet Features", () => {
 
     // Verify new owner
     ownerResult = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "owner-of",
       [uintCV(agentId)],
       deployer
@@ -790,7 +790,7 @@ describe("ERC-8004 Integration: v2.0.0 NFT and Agent Wallet Features", () => {
 
     // Verify agentWallet was cleared
     const walletResult = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-agent-wallet",
       [uintCV(agentId)],
       deployer
@@ -800,12 +800,12 @@ describe("ERC-8004 Integration: v2.0.0 NFT and Agent Wallet Features", () => {
 
   it("Agent wallet lifecycle: auto-set -> direct change -> signed change -> transfer clears", () => {
     // Register agent (auto-sets wallet to owner)
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     // Verify auto-set wallet
     let walletResult = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-agent-wallet",
       [uintCV(agentId)],
       deployer
@@ -814,13 +814,13 @@ describe("ERC-8004 Integration: v2.0.0 NFT and Agent Wallet Features", () => {
 
     // Approve client1 as operator, then set wallet via tx-sender path
     simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-approval-for-all",
       [uintCV(agentId), principalCV(client1), Cl.bool(true)],
       agentOwner
     );
     const directResult = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-agent-wallet-direct",
       [uintCV(agentId)],
       client1
@@ -829,7 +829,7 @@ describe("ERC-8004 Integration: v2.0.0 NFT and Agent Wallet Features", () => {
 
     // Verify wallet updated
     walletResult = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-agent-wallet",
       [uintCV(agentId)],
       deployer
@@ -843,7 +843,7 @@ describe("ERC-8004 Integration: v2.0.0 NFT and Agent Wallet Features", () => {
 
     // Transfer to new owner
     const transferResult = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "transfer",
       [uintCV(agentId), principalCV(agentOwner), principalCV(client2)],
       agentOwner
@@ -852,7 +852,7 @@ describe("ERC-8004 Integration: v2.0.0 NFT and Agent Wallet Features", () => {
 
     // Verify agentWallet cleared
     walletResult = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-agent-wallet",
       [uintCV(agentId)],
       deployer
@@ -869,7 +869,7 @@ describe("ERC-8004 Integration: v2.0.0 NFT and Agent Wallet Features", () => {
       })
     ]);
     const registerResult = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "register-full",
       [stringUtf8CV("ipfs://test"), reservedMetadata],
       agentOwner
@@ -877,12 +877,12 @@ describe("ERC-8004 Integration: v2.0.0 NFT and Agent Wallet Features", () => {
     expect(registerResult.result).toBeErr(uintCV(1004n)); // ERR_RESERVED_KEY
 
     // Register agent normally
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     // Attempt set-metadata with "agentWallet" key
     const setMetadataResult = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-metadata",
       [uintCV(agentId), Cl.stringUtf8("agentWallet"), bufferCV(new Uint8Array([4, 5, 6]))],
       agentOwner
@@ -894,7 +894,7 @@ describe("ERC-8004 Integration: v2.0.0 NFT and Agent Wallet Features", () => {
 describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
   it("Three feedback authorization paths: permissionless vs approved vs SIP-018", () => {
     // Register agent
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     const emptyTag = Cl.stringUtf8("");
@@ -902,7 +902,7 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
 
     // Path 1: Permissionless feedback from client1 (no approval needed)
     const permissionlessResult = simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback",
       [
         uintCV(agentId),
@@ -920,13 +920,13 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
 
     // Path 2: Approved feedback - approve client2, then client2 gives feedback
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "approve-client",
       [uintCV(agentId), principalCV(client2), uintCV(5n)],
       agentOwner
     );
     const approvedResult = simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [
         uintCV(agentId),
@@ -945,13 +945,13 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
     // Path 3: SIP-018 signed feedback would require signature generation
     // Note: Full implementation requires off-chain signature, here we verify approved path works
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "approve-client",
       [uintCV(agentId), principalCV(validator), uintCV(5n)],
       agentOwner
     );
     const signedResult = simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [
         uintCV(agentId),
@@ -969,7 +969,7 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
 
     // Verify all three feedbacks in summary
     const summaryResult = simnet.callReadOnlyFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "get-summary",
       [uintCV(agentId)],
       deployer
@@ -981,12 +981,12 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
 
   it("Self-feedback blocked on all paths: owner and operator rejected", () => {
     // Register agent
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     // Approve operator
     simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-approval-for-all",
       [uintCV(agentId), principalCV(operator), Cl.bool(true)],
       agentOwner
@@ -997,7 +997,7 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
 
     // Attempt 1: Owner tries permissionless feedback
     const ownerPermissionless = simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback",
       [
         uintCV(agentId),
@@ -1015,13 +1015,13 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
 
     // Attempt 2: Owner approves self, tries approved feedback
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "approve-client",
       [uintCV(agentId), principalCV(agentOwner), uintCV(5n)],
       agentOwner
     );
     const ownerApproved = simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback-approved",
       [
         uintCV(agentId),
@@ -1039,7 +1039,7 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
 
     // Attempt 3: Operator tries permissionless feedback
     const operatorPermissionless = simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback",
       [
         uintCV(agentId),
@@ -1058,7 +1058,7 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
 
   it("Mixed-precision feedback with WAD normalization in summary", () => {
     // Register agent
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     const emptyTag = Cl.stringUtf8("");
@@ -1066,7 +1066,7 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
 
     // Feedback 1: value=85, decimals=0 (85.0)
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback",
       [uintCV(agentId), Cl.int(85), Cl.uint(0), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("f1"), hash],
       client1
@@ -1074,7 +1074,7 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
 
     // Feedback 2: value=9500, decimals=2 (95.00)
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback",
       [uintCV(agentId), Cl.int(9500), Cl.uint(2), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("f2"), hash],
       client2
@@ -1082,7 +1082,7 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
 
     // Feedback 3: value=-100, decimals=1 (-10.0)
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback",
       [uintCV(agentId), Cl.int(-100), Cl.uint(1), emptyTag, emptyTag, Cl.stringUtf8("https://example.com/api"), stringUtf8CV("f3"), hash],
       validator
@@ -1091,7 +1091,7 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
     // Get summary - should normalize via WAD
     // (85*10^18 + 95*10^18 + (-10)*10^18) / 3 = 170*10^18 / 3 = 56.666... (mode decimals likely 0)
     const summaryResult = simnet.callReadOnlyFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "get-summary",
       [uintCV(agentId)],
       deployer
@@ -1105,26 +1105,26 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
 
   it("String tags in filtering across reputation and validation", () => {
     // Register agent
-    simnet.callPublicFn("identity-registry", "register", [], agentOwner);
+    simnet.callPublicFn("identity-registry-v2", "register", [], agentOwner);
     const agentId = 0n;
 
     const hash = bufferCV(hashFromString("feedback"));
 
     // Give feedback with different tags
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback",
       [uintCV(agentId), Cl.int(85), Cl.uint(0), Cl.stringUtf8("uptime"), Cl.stringUtf8(""), Cl.stringUtf8("https://example.com/api"), stringUtf8CV("f1"), hash],
       client1
     );
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback",
       [uintCV(agentId), Cl.int(90), Cl.uint(0), Cl.stringUtf8("quality"), Cl.stringUtf8(""), Cl.stringUtf8("https://example.com/api"), stringUtf8CV("f2"), hash],
       client2
     );
     simnet.callPublicFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "give-feedback",
       [uintCV(agentId), Cl.int(80), Cl.uint(0), Cl.stringUtf8("speed"), Cl.stringUtf8(""), Cl.stringUtf8("https://example.com/api"), stringUtf8CV("f3"), hash],
       validator
@@ -1132,7 +1132,7 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
 
     // Get reputation summary (unfiltered - tag filtering is indexer's job)
     const uptimeSummary = simnet.callReadOnlyFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "get-summary",
       [uintCV(agentId)],
       deployer
@@ -1146,26 +1146,26 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
     const reqHash2 = bufferCV(hashFromString("req2"));
 
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(validator), uintCV(agentId), stringUtf8CV("req1"), reqHash1],
       agentOwner
     );
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [reqHash1, uintCV(90n), stringUtf8CV("resp1"), bufferCV(hashFromString("resp1")), stringUtf8CV("security-audit")],
       validator
     );
 
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(validator), uintCV(agentId), stringUtf8CV("req2"), reqHash2],
       agentOwner
     );
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [reqHash2, uintCV(85n), stringUtf8CV("resp2"), bufferCV(hashFromString("resp2")), stringUtf8CV("performance")],
       validator
@@ -1173,7 +1173,7 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
 
     // Get validation summary (unfiltered - tag filtering is indexer's job)
     const valSummary = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-summary",
       [uintCV(agentId)],
       deployer
@@ -1187,7 +1187,7 @@ describe("ERC-8004 Integration: v2.0.0 Feedback Features", () => {
 describe("ERC-8004 Integration: Version Consistency", () => {
   it("all contracts report version 1.0.0 or 2.0.0", () => {
     const identityVersion = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-version",
       [],
       deployer
@@ -1196,7 +1196,7 @@ describe("ERC-8004 Integration: Version Consistency", () => {
     expect(identityVersion.result).toStrictEqual(stringUtf8CV("2.0.0"));
 
     const reputationVersion = simnet.callReadOnlyFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "get-version",
       [],
       deployer
@@ -1205,7 +1205,7 @@ describe("ERC-8004 Integration: Version Consistency", () => {
     expect(reputationVersion.result).toStrictEqual(stringUtf8CV("2.0.0"));
 
     const validationVersion = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-version",
       [],
       deployer
@@ -1214,25 +1214,25 @@ describe("ERC-8004 Integration: Version Consistency", () => {
     expect(validationVersion.result).toStrictEqual(stringUtf8CV("2.0.0"));
   });
 
-  it("reputation and validation registries reference identity-registry", () => {
+  it("reputation and validation registries reference identity-registry-v2", () => {
     const reputationRegistry = simnet.callReadOnlyFn(
-      "reputation-registry",
+      "reputation-registry-v2",
       "get-identity-registry",
       [],
       deployer
     );
     expect(reputationRegistry.result).toStrictEqual(
-      Cl.contractPrincipal(deployer, "identity-registry")
+      Cl.contractPrincipal(deployer, "identity-registry-v2")
     );
 
     const validationRegistry = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-identity-registry",
       [],
       deployer
     );
     expect(validationRegistry.result).toStrictEqual(
-      Cl.contractPrincipal(deployer, "identity-registry")
+      Cl.contractPrincipal(deployer, "identity-registry-v2")
     );
   });
 });

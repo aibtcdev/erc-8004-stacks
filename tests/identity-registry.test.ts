@@ -21,13 +21,13 @@ const address2 = accounts.get("wallet_2")!;
   https://docs.hiro.so/stacks/clarinet-js-sdk
 */
 
-describe("identity-registry public functions", () => {
+describe("identity-registry-v2 public functions", () => {
   it("register() registers a new agent successfully", () => {
     // arrange
 
     // act
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "register",
       [],
       address1
@@ -43,7 +43,7 @@ describe("identity-registry public functions", () => {
     // act
     const uri = stringUtf8CV("ipfs://test-uri");
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "register-with-uri",
       [uri],
       address1
@@ -63,7 +63,7 @@ describe("identity-registry public functions", () => {
 
     // act
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "register-full",
       [uri, metadata],
       address1
@@ -75,12 +75,12 @@ describe("identity-registry public functions", () => {
 
   it("set-agent-uri() allows owner to update agent URI", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act
     const newUri = stringUtf8CV("ipfs://updated");
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-agent-uri",
       [uintCV(0n), newUri],
       address1
@@ -92,13 +92,13 @@ describe("identity-registry public functions", () => {
 
   it("set-metadata() allows owner to set agent metadata", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act
     const key = stringUtf8CV("color");
     const value = bufferCVFromString("blue");
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-metadata",
       [uintCV(0n), key, value],
       address1
@@ -110,11 +110,11 @@ describe("identity-registry public functions", () => {
 
   it("set-approval-for-all() allows owner to approve operator", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-approval-for-all",
       [uintCV(0n), principalCV(address2), Cl.bool(true)],
       address1
@@ -126,12 +126,12 @@ describe("identity-registry public functions", () => {
 
   it("set-agent-uri() fails if caller not authorized", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act
     const newUri = stringUtf8CV("ipfs://updated");
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-agent-uri",
       [uintCV(0n), newUri],
       address2
@@ -143,13 +143,13 @@ describe("identity-registry public functions", () => {
 
   it("set-metadata() fails if caller not authorized", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act
     const key = stringUtf8CV("color");
     const value = bufferCV(Buffer.from("blue", "utf8"));
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-metadata",
       [uintCV(0n), key, value],
       address2
@@ -161,11 +161,11 @@ describe("identity-registry public functions", () => {
 
   it("set-approval-for-all() fails if caller not owner", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-approval-for-all",
       [uintCV(0n), principalCV(address2), Cl.bool(true)],
       address2
@@ -178,13 +178,13 @@ describe("identity-registry public functions", () => {
   it("register() registers multiple agents with incrementing IDs", () => {
     // act
     const { result: r1 } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "register",
       [],
       address1
     );
     const { result: r2 } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "register",
       [],
       address2
@@ -195,7 +195,7 @@ describe("identity-registry public functions", () => {
     expect(r2).toBeOk(uintCV(1n));
 
     const owner0 = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "owner-of",
       [uintCV(0n)],
       deployer
@@ -203,7 +203,7 @@ describe("identity-registry public functions", () => {
     expect(owner0).toBeSome(principalCV(address1));
 
     const owner1 = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "owner-of",
       [uintCV(1n)],
       deployer
@@ -213,9 +213,9 @@ describe("identity-registry public functions", () => {
 
   it("set-agent-uri() succeeds when called by approved operator", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
     simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-approval-for-all",
       [uintCV(0n), principalCV(address2), Cl.bool(true)],
       address1
@@ -224,7 +224,7 @@ describe("identity-registry public functions", () => {
     // act
     const newUri = stringUtf8CV("ipfs://operator-updated");
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-agent-uri",
       [uintCV(0n), newUri],
       address2
@@ -235,16 +235,16 @@ describe("identity-registry public functions", () => {
   });
 });
 
-describe("identity-registry SIP-009 NFT functions", () => {
+describe("identity-registry-v2 SIP-009 NFT functions", () => {
   it("get-last-token-id() returns correct ID after registrations", () => {
     // arrange - register 3 agents
-    simnet.callPublicFn("identity-registry", "register", [], address1);
-    simnet.callPublicFn("identity-registry", "register", [], address1);
-    simnet.callPublicFn("identity-registry", "register", [], address2);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address2);
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-last-token-id",
       [],
       deployer
@@ -257,7 +257,7 @@ describe("identity-registry SIP-009 NFT functions", () => {
   it("get-last-token-id() handles no registrations", () => {
     // act
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-last-token-id",
       [],
       deployer
@@ -271,7 +271,7 @@ describe("identity-registry SIP-009 NFT functions", () => {
     // arrange
     const testUri = stringUtf8CV("ipfs://test-uri");
     simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "register-with-uri",
       [testUri],
       address1
@@ -279,7 +279,7 @@ describe("identity-registry SIP-009 NFT functions", () => {
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-token-uri",
       [uintCV(0n)],
       deployer
@@ -291,11 +291,11 @@ describe("identity-registry SIP-009 NFT functions", () => {
 
   it("get-owner() returns owner principal wrapped in ok", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-owner",
       [uintCV(0n)],
       deployer
@@ -307,11 +307,11 @@ describe("identity-registry SIP-009 NFT functions", () => {
 
   it("transfer() allows owner to transfer NFT", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "transfer",
       [uintCV(0n), principalCV(address1), principalCV(address2)],
       address1
@@ -322,7 +322,7 @@ describe("identity-registry SIP-009 NFT functions", () => {
 
     // verify new owner
     const ownerResult = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-owner",
       [uintCV(0n)],
       deployer
@@ -332,11 +332,11 @@ describe("identity-registry SIP-009 NFT functions", () => {
 
   it("transfer() fails when sender is not tx-sender", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act - address1 tries to transfer but claims sender is address2
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "transfer",
       [uintCV(0n), principalCV(address2), principalCV(address1)],
       address1
@@ -348,11 +348,11 @@ describe("identity-registry SIP-009 NFT functions", () => {
 
   it("transfer() fails when sender is not owner", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act - address2 tries to transfer address1's NFT
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "transfer",
       [uintCV(0n), principalCV(address2), principalCV(address1)],
       address2
@@ -365,7 +365,7 @@ describe("identity-registry SIP-009 NFT functions", () => {
   it("transfer() fails for non-existent token", () => {
     // act
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "transfer",
       [uintCV(999n), principalCV(address1), principalCV(address2)],
       address1
@@ -376,14 +376,14 @@ describe("identity-registry SIP-009 NFT functions", () => {
   });
 });
 
-describe("identity-registry read-only functions", () => {
+describe("identity-registry-v2 read-only functions", () => {
   it("owner-of() returns the owner of an agent (legacy)", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "owner-of",
       [uintCV(0n)],
       deployer
@@ -397,7 +397,7 @@ describe("identity-registry read-only functions", () => {
     // arrange
     const testUri = stringUtf8CV("ipfs://test");
     simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "register-with-uri",
       [testUri],
       address1
@@ -405,7 +405,7 @@ describe("identity-registry read-only functions", () => {
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-uri",
       [uintCV(0n)],
       deployer
@@ -417,11 +417,11 @@ describe("identity-registry read-only functions", () => {
 
   it("get-metadata() returns the metadata value for a key", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
     const key = stringUtf8CV("color");
     const value = bufferCV(Buffer.from("blue", "utf8"));
     simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-metadata",
       [uintCV(0n), key, value],
       address1
@@ -429,7 +429,7 @@ describe("identity-registry read-only functions", () => {
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-metadata",
       [uintCV(0n), key],
       deployer
@@ -441,9 +441,9 @@ describe("identity-registry read-only functions", () => {
 
   it("is-approved-for-all() returns true if operator is approved", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
     simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-approval-for-all",
       [uintCV(0n), principalCV(address2), Cl.bool(true)],
       address1
@@ -451,7 +451,7 @@ describe("identity-registry read-only functions", () => {
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "is-approved-for-all",
       [uintCV(0n), principalCV(address2)],
       deployer
@@ -466,7 +466,7 @@ describe("identity-registry read-only functions", () => {
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-version",
       [],
       deployer
@@ -478,11 +478,11 @@ describe("identity-registry read-only functions", () => {
 
   it("is-approved-for-all() returns false by default", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "is-approved-for-all",
       [uintCV(0n), principalCV(address2)],
       deployer
@@ -495,7 +495,7 @@ describe("identity-registry read-only functions", () => {
   it("owner-of() returns none for non-existent agent", () => {
     // act
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "owner-of",
       [uintCV(999n)],
       deployer
@@ -506,12 +506,12 @@ describe("identity-registry read-only functions", () => {
   });
 });
 
-describe("identity-registry agent-wallet feature", () => {
+describe("identity-registry-v2 agent-wallet feature", () => {
   it("register() auto-sets agent-wallet to owner", () => {
     // act
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-agent-wallet",
       [uintCV(0n)],
       deployer
@@ -524,9 +524,9 @@ describe("identity-registry agent-wallet feature", () => {
   it("register-with-uri() auto-sets agent-wallet to owner", () => {
     // act
     const uri = stringUtf8CV("ipfs://test");
-    simnet.callPublicFn("identity-registry", "register-with-uri", [uri], address1);
+    simnet.callPublicFn("identity-registry-v2", "register-with-uri", [uri], address1);
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-agent-wallet",
       [uintCV(0n)],
       deployer
@@ -540,9 +540,9 @@ describe("identity-registry agent-wallet feature", () => {
     // act
     const uri = stringUtf8CV("ipfs://full");
     const metadata = listCV([]);
-    simnet.callPublicFn("identity-registry", "register-full", [uri, metadata], address1);
+    simnet.callPublicFn("identity-registry-v2", "register-full", [uri, metadata], address1);
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-agent-wallet",
       [uintCV(0n)],
       deployer
@@ -554,13 +554,13 @@ describe("identity-registry agent-wallet feature", () => {
 
   it("set-metadata() rejects agentWallet reserved key", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act
     const key = stringUtf8CV("agentWallet");
     const value = bufferCVFromString("test");
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-metadata",
       [uintCV(0n), key, value],
       address1
@@ -578,7 +578,7 @@ describe("identity-registry agent-wallet feature", () => {
     const metadataEntry = tupleCV({ key: testKey, value: testValue });
     const metadata = listCV([metadataEntry]);
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "register-full",
       [uri, metadata],
       address1
@@ -591,7 +591,7 @@ describe("identity-registry agent-wallet feature", () => {
   it("get-agent-wallet() returns none for non-existent agent", () => {
     // act
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-agent-wallet",
       [uintCV(999n)],
       deployer
@@ -603,10 +603,10 @@ describe("identity-registry agent-wallet feature", () => {
 
   it("set-agent-wallet-direct() allows approved operator to set wallet", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
     // approve address2 as operator
     simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-approval-for-all",
       [uintCV(0n), principalCV(address2), Cl.bool(true)],
       address1
@@ -614,7 +614,7 @@ describe("identity-registry agent-wallet feature", () => {
 
     // act - address2 (approved operator) calls to set itself as wallet
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-agent-wallet-direct",
       [uintCV(0n)],
       address2
@@ -623,7 +623,7 @@ describe("identity-registry agent-wallet feature", () => {
     // assert
     expect(result).toBeOk(Cl.bool(true));
     const { result: wallet } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-agent-wallet",
       [uintCV(0n)],
       deployer
@@ -633,11 +633,11 @@ describe("identity-registry agent-wallet feature", () => {
 
   it("set-agent-wallet-direct() rejects unauthorized caller", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act - address2 (not owner/operator) tries to set wallet
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-agent-wallet-direct",
       [uintCV(0n)],
       address2
@@ -649,12 +649,12 @@ describe("identity-registry agent-wallet feature", () => {
 
   it("set-agent-wallet-direct() rejects if caller is already the wallet", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
     // address1 is already the wallet from registration
 
     // act - address1 tries to set itself again
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-agent-wallet-direct",
       [uintCV(0n)],
       address1
@@ -667,7 +667,7 @@ describe("identity-registry agent-wallet feature", () => {
   it("set-agent-wallet-direct() rejects for non-existent agent", () => {
     // act
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-agent-wallet-direct",
       [uintCV(999n)],
       address1
@@ -682,7 +682,7 @@ describe("identity-registry agent-wallet feature", () => {
     // This test verifies the function exists and has correct error handling
 
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act - call with dummy signature and expired deadline
     const agentId = uintCV(0n);
@@ -690,7 +690,7 @@ describe("identity-registry agent-wallet feature", () => {
     const deadline = uintCV(0n); // Expired
     const signature = bufferCV(Buffer.alloc(65)); // Dummy signature
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-agent-wallet-signed",
       [agentId, newWallet, deadline, signature],
       address1
@@ -702,7 +702,7 @@ describe("identity-registry agent-wallet feature", () => {
 
   it("set-agent-wallet-signed() rejects non-authorized caller", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act - address2 (not owner/operator) tries to set wallet
     const agentId = uintCV(0n);
@@ -710,7 +710,7 @@ describe("identity-registry agent-wallet feature", () => {
     const deadline = uintCV(999999n); // Far future
     const signature = bufferCV(Buffer.alloc(65));
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-agent-wallet-signed",
       [agentId, newWallet, deadline, signature],
       address2
@@ -727,7 +727,7 @@ describe("identity-registry agent-wallet feature", () => {
     const deadline = uintCV(999999n);
     const signature = bufferCV(Buffer.alloc(65));
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-agent-wallet-signed",
       [agentId, newWallet, deadline, signature],
       address1
@@ -739,11 +739,11 @@ describe("identity-registry agent-wallet feature", () => {
 
   it("unset-agent-wallet() allows owner to clear wallet", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "unset-agent-wallet",
       [uintCV(0n)],
       address1
@@ -752,7 +752,7 @@ describe("identity-registry agent-wallet feature", () => {
     // assert
     expect(result).toBeOk(Cl.bool(true));
     const { result: wallet } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-agent-wallet",
       [uintCV(0n)],
       deployer
@@ -762,11 +762,11 @@ describe("identity-registry agent-wallet feature", () => {
 
   it("unset-agent-wallet() rejects non-authorized caller", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act - address2 (not owner/operator) tries to unset
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "unset-agent-wallet",
       [uintCV(0n)],
       address2
@@ -778,9 +778,9 @@ describe("identity-registry agent-wallet feature", () => {
 
   it("unset-agent-wallet() allows approved operator to clear wallet", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
     simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-approval-for-all",
       [uintCV(0n), principalCV(address2), Cl.bool(true)],
       address1
@@ -788,7 +788,7 @@ describe("identity-registry agent-wallet feature", () => {
 
     // act
     const { result } = simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "unset-agent-wallet",
       [uintCV(0n)],
       address2
@@ -800,9 +800,9 @@ describe("identity-registry agent-wallet feature", () => {
 
   it("transfer() clears agent-wallet before transferring", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
     const { result: walletBefore } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-agent-wallet",
       [uintCV(0n)],
       deployer
@@ -811,7 +811,7 @@ describe("identity-registry agent-wallet feature", () => {
 
     // act - transfer to address2
     simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "transfer",
       [uintCV(0n), principalCV(address1), principalCV(address2)],
       address1
@@ -819,7 +819,7 @@ describe("identity-registry agent-wallet feature", () => {
 
     // assert - wallet should be cleared
     const { result: walletAfter } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "get-agent-wallet",
       [uintCV(0n)],
       deployer
@@ -829,11 +829,11 @@ describe("identity-registry agent-wallet feature", () => {
 
   it("is-authorized-or-owner() returns true for owner", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "is-authorized-or-owner",
       [principalCV(address1), uintCV(0n)],
       deployer
@@ -845,9 +845,9 @@ describe("identity-registry agent-wallet feature", () => {
 
   it("is-authorized-or-owner() returns true for approved operator", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
     simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-approval-for-all",
       [uintCV(0n), principalCV(address2), Cl.bool(true)],
       address1
@@ -855,7 +855,7 @@ describe("identity-registry agent-wallet feature", () => {
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "is-authorized-or-owner",
       [principalCV(address2), uintCV(0n)],
       deployer
@@ -867,11 +867,11 @@ describe("identity-registry agent-wallet feature", () => {
 
   it("is-authorized-or-owner() returns false for others", () => {
     // arrange
-    simnet.callPublicFn("identity-registry", "register", [], address1);
+    simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "is-authorized-or-owner",
       [principalCV(address2), uintCV(0n)],
       deployer
@@ -884,7 +884,7 @@ describe("identity-registry agent-wallet feature", () => {
   it("is-authorized-or-owner() returns error for non-existent agent", () => {
     // act
     const { result } = simnet.callReadOnlyFn(
-      "identity-registry",
+      "identity-registry-v2",
       "is-authorized-or-owner",
       [principalCV(address1), uintCV(999n)],
       deployer

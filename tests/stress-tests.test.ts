@@ -61,7 +61,7 @@ function hashFromString(s: string): Uint8Array {
 // Register an agent and return its ID
 function registerAgent(owner: string): bigint {
   const { result } = simnet.callPublicFn(
-    "identity-registry",
+    "identity-registry-v2",
     "register",
     [],
     owner
@@ -78,7 +78,7 @@ function giveFeedback(
   feedbackNum: number
 ): bigint {
   const { result } = simnet.callPublicFn(
-    "reputation-registry",
+    "reputation-registry-v2",
     "give-feedback",
     [
       uintCV(agentId),
@@ -104,7 +104,7 @@ function createValidationRequest(
 ): Uint8Array {
   const hash = hashFromString(`request-hash-${requestNum}`);
   simnet.callPublicFn(
-    "validation-registry",
+    "validation-registry-v2",
     "validation-request",
     [
       principalCV(validator),
@@ -125,7 +125,7 @@ function addValidationResponse(
   responseNum: number
 ): void {
   simnet.callPublicFn(
-    "validation-registry",
+    "validation-registry-v2",
     "validation-response",
     [
       bufferCV(requestHash),
@@ -149,7 +149,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // act - first page
       const result1 = simnet.callReadOnlyFn(
-        "reputation-registry",
+        "reputation-registry-v2",
         "get-clients",
         [uintCV(agentId), noneCV()],
         deployer
@@ -170,7 +170,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // act - first page
       const result1 = simnet.callReadOnlyFn(
-        "reputation-registry",
+        "reputation-registry-v2",
         "get-clients",
         [uintCV(agentId), noneCV()],
         deployer
@@ -209,7 +209,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // act - check agent 1 clients
       const result1 = simnet.callReadOnlyFn(
-        "reputation-registry",
+        "reputation-registry-v2",
         "get-clients",
         [uintCV(agentId1), noneCV()],
         deployer
@@ -221,7 +221,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // act - check agent 2 clients
       const result2 = simnet.callReadOnlyFn(
-        "reputation-registry",
+        "reputation-registry-v2",
         "get-clients",
         [uintCV(agentId2), noneCV()],
         deployer
@@ -241,7 +241,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // Add 3 responders
       simnet.callPublicFn(
-        "reputation-registry",
+        "reputation-registry-v2",
         "append-response",
         [
           uintCV(agentId),
@@ -253,7 +253,7 @@ describe("Reputation Registry - Stress Tests", () => {
         wallet3
       );
       simnet.callPublicFn(
-        "reputation-registry",
+        "reputation-registry-v2",
         "append-response",
         [
           uintCV(agentId),
@@ -265,7 +265,7 @@ describe("Reputation Registry - Stress Tests", () => {
         wallet4
       );
       simnet.callPublicFn(
-        "reputation-registry",
+        "reputation-registry-v2",
         "append-response",
         [
           uintCV(agentId),
@@ -279,7 +279,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // act
       const result = simnet.callReadOnlyFn(
-        "reputation-registry",
+        "reputation-registry-v2",
         "get-responders",
         [uintCV(agentId), principalCV(wallet2), uintCV(feedbackId), noneCV()],
         deployer
@@ -300,7 +300,7 @@ describe("Reputation Registry - Stress Tests", () => {
       [wallet3, wallet4, wallet5, wallet6, wallet7, wallet8, deployer].forEach(
         (wallet, idx) => {
           simnet.callPublicFn(
-            "reputation-registry",
+            "reputation-registry-v2",
             "append-response",
             [
               uintCV(agentId),
@@ -316,7 +316,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // act
       const result = simnet.callReadOnlyFn(
-        "reputation-registry",
+        "reputation-registry-v2",
         "get-responders",
         [uintCV(agentId), principalCV(wallet2), uintCV(feedbackId), noneCV()],
         deployer
@@ -342,7 +342,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // act
       const result = simnet.callReadOnlyFn(
-        "reputation-registry",
+        "reputation-registry-v2",
         "read-all-feedback",
         [
           uintCV(agentId),
@@ -374,7 +374,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // act - page 1
       const result1 = simnet.callReadOnlyFn(
-        "reputation-registry",
+        "reputation-registry-v2",
         "read-all-feedback",
         [
           uintCV(agentId),
@@ -394,7 +394,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // act - page 2
       const result2 = simnet.callReadOnlyFn(
-        "reputation-registry",
+        "reputation-registry-v2",
         "read-all-feedback",
         [
           uintCV(agentId),
@@ -414,7 +414,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // act - page 3
       const result3 = simnet.callReadOnlyFn(
-        "reputation-registry",
+        "reputation-registry-v2",
         "read-all-feedback",
         [
           uintCV(agentId),
@@ -451,7 +451,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       while (true) {
         const result = simnet.callReadOnlyFn(
-          "reputation-registry",
+          "reputation-registry-v2",
           "read-all-feedback",
           [
             uintCV(agentId),
@@ -501,7 +501,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // act
       const result = simnet.callReadOnlyFn(
-        "reputation-registry",
+        "reputation-registry-v2",
         "get-summary",
         [uintCV(agentId)],
         deployer
@@ -533,7 +533,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // act
       const result = simnet.callReadOnlyFn(
-        "reputation-registry",
+        "reputation-registry-v2",
         "get-summary",
         [uintCV(agentId)],
         deployer
@@ -565,7 +565,7 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // act
       const result = simnet.callReadOnlyFn(
-        "reputation-registry",
+        "reputation-registry-v2",
         "get-summary",
         [uintCV(agentId)],
         deployer
@@ -592,7 +592,7 @@ describe("Validation Registry - Stress Tests", () => {
 
       // act
       const result = simnet.callReadOnlyFn(
-        "validation-registry",
+        "validation-registry-v2",
         "get-agent-validations",
         [uintCV(agentId), noneCV()],
         deployer
@@ -618,7 +618,7 @@ describe("Validation Registry - Stress Tests", () => {
 
       // act
       const result = simnet.callReadOnlyFn(
-        "validation-registry",
+        "validation-registry-v2",
         "get-agent-validations",
         [uintCV(agentId), noneCV()],
         deployer
@@ -643,7 +643,7 @@ describe("Validation Registry - Stress Tests", () => {
 
       // act - page 1
       const result1 = simnet.callReadOnlyFn(
-        "validation-registry",
+        "validation-registry-v2",
         "get-agent-validations",
         [uintCV(agentId), noneCV()],
         deployer
@@ -656,7 +656,7 @@ describe("Validation Registry - Stress Tests", () => {
 
       // act - page 2
       const result2 = simnet.callReadOnlyFn(
-        "validation-registry",
+        "validation-registry-v2",
         "get-agent-validations",
         [uintCV(agentId), someCV(uintCV(14n))],
         deployer
@@ -684,7 +684,7 @@ describe("Validation Registry - Stress Tests", () => {
 
       // act
       const result = simnet.callReadOnlyFn(
-        "validation-registry",
+        "validation-registry-v2",
         "get-validator-requests",
         [principalCV(validator), noneCV()],
         deployer
@@ -708,7 +708,7 @@ describe("Validation Registry - Stress Tests", () => {
 
       // act
       const result = simnet.callReadOnlyFn(
-        "validation-registry",
+        "validation-registry-v2",
         "get-validator-requests",
         [principalCV(validator), noneCV()],
         deployer
@@ -732,7 +732,7 @@ describe("Validation Registry - Stress Tests", () => {
 
       // act - page 1
       const result1 = simnet.callReadOnlyFn(
-        "validation-registry",
+        "validation-registry-v2",
         "get-validator-requests",
         [principalCV(validator), noneCV()],
         deployer
@@ -745,7 +745,7 @@ describe("Validation Registry - Stress Tests", () => {
 
       // act - page 2
       const result2 = simnet.callReadOnlyFn(
-        "validation-registry",
+        "validation-registry-v2",
         "get-validator-requests",
         [principalCV(validator), someCV(uintCV(14n))],
         deployer
@@ -775,7 +775,7 @@ describe("Validation Registry - Stress Tests", () => {
 
       // act - get summary for the agent (all validations)
       const result = simnet.callReadOnlyFn(
-        "validation-registry",
+        "validation-registry-v2",
         "get-summary",
         [uintCV(agentId)],
         deployer
@@ -804,7 +804,7 @@ describe("Validation Registry - Stress Tests", () => {
 
       // act
       const result = simnet.callReadOnlyFn(
-        "validation-registry",
+        "validation-registry-v2",
         "get-summary",
         [uintCV(agentId)],
         deployer
@@ -830,7 +830,7 @@ describe("Validation Registry - Stress Tests", () => {
 
       // act - get summary (unfiltered, O(1))
       const result = simnet.callReadOnlyFn(
-        "validation-registry",
+        "validation-registry-v2",
         "get-summary",
         [uintCV(agentId)],
         deployer

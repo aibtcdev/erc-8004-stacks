@@ -631,7 +631,7 @@
 )
 
 (define-read-only (get-identity-registry)
-  .identity-registry
+  .identity-registry-v2
 )
 
 (define-read-only (get-version)

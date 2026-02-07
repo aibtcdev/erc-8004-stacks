@@ -1,5 +1,5 @@
 {
-  "name": "owner-agent-registry-tests",
+  "name": "erc-8004-stacks-contracts",
   "version": "1.0.0",
   "description": "Run unit tests on this project.",
   "type": "module",

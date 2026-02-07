@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ERC-8004 Stacks Contracts - Clarity smart contracts implementing the ERC-8004 agent identity/reputation/validation protocol for Stacks blockchain. Mirrors the [Solidity reference implementation](https://github.com/erc8004-org/erc8004-contracts).
 
-**Current Status**: All three registries ✅ complete with 151 tests passing. v2.0.0 spec-compliant. Deployed to testnet.
+**Current Status**: All three registries ✅ complete with 149 tests passing. v2.0.0 spec-compliant. Deployed to testnet.
 
 ## Commands
 
@@ -49,7 +49,7 @@ Three contracts implementing ERC-8004 spec as chain singletons:
 **v2.0.0 Features**:
 - **NFT Identity**: Native Clarity NFT with SIP-009 trait (transfer, get-owner, get-last-token-id, get-token-uri)
 - **Agent Wallet**: Reserved metadata key, auto-set on register, dual-path change (tx-sender or SIP-018), cleared on transfer
-- **Signed Values**: Reputation value is `int` (-2^127 to 2^127-1) with `uint` decimals (0-18), WAD normalization in getSummary
+- **Signed Values**: Reputation value is `int` (-2^127 to 2^127-1) with `uint` decimals (0-18), WAD normalization via running totals (O(1))
 - **Permissionless Feedback**: No approval required, self-feedback blocked via cross-contract check
 - **String Tags**: UTF-8 tags (64 chars) in both reputation and validation for semantic filtering
 - **Progressive Validation**: Multiple responses per request hash (soft -> hard finality)
@@ -77,7 +77,7 @@ Three contracts implementing ERC-8004 spec as chain singletons:
   - u3004: ERR_INVALID_VALUE
   - u3005: ERR_SELF_FEEDBACK (owner/operator cannot give feedback)
   - u3011: ERR_INVALID_DECIMALS (must be 0-18)
-  - u3012: ERR_EMPTY_CLIENT_LIST (getSummary requires clients)
+  - u3012: ERR_EMPTY_CLIENT_LIST (obsolete - retained for compatibility)
 
 ```clarity
 (define-constant ERR_NOT_AUTHORIZED (err u1000))
@@ -105,6 +105,11 @@ Three contracts implementing ERC-8004 spec as chain singletons:
 - Reputation decimals: `uint` (0-18, for value normalization)
 - Agent wallet: `principal` (auto-set, dual-path change)
 
+**Storage patterns**:
+- Reputation feedback: `{value: int, value-decimals: uint, wad-value: int, tag1: (string-utf8 64), tag2: (string-utf8 64), is-revoked: bool}`
+  - `wad-value`: WAD-normalized (18-decimal) value stored at write time for O(1) aggregation and exact revocation reversal
+- Running totals enable O(1) summary queries without iteration (see Aggregation Architecture below)
+
 **Key function signatures** (v2.0.0):
 ```clarity
 ;; Identity Registry
@@ -123,13 +128,9 @@ Three contracts implementing ERC-8004 spec as chain singletons:
   (feedback-uri (string-utf8 512)) (feedback-hash (buff 32))
 ) (response uint uint))
 
-(define-read-only (get-summary
-  (agent-id uint)
-  (client-addresses (list 200 principal)) ;; required, non-empty
-  (opt-tag1 (optional (string-utf8 64))) ;; optional tags for filtering
-  (opt-tag2 (optional (string-utf8 64)))
-  (opt-cursor (optional uint)) ;; pagination offset, none starts at 1
-) {count: uint, summary-value: int, summary-value-decimals: uint, cursor: (optional uint)})
+(define-read-only (get-summary (agent-id uint))
+  {count: uint, summary-value: int, summary-value-decimals: uint})
+;; O(1) via running totals. Filtering by tags/clients is indexer concern.
 
 (define-read-only (read-all-feedback
   (agent-id uint)
@@ -161,12 +162,39 @@ Three contracts implementing ERC-8004 spec as chain singletons:
   (tag (string-utf8 64)) ;; single tag
 ) (response bool uint))
 
+(define-read-only (get-summary (agent-id uint))
+  {count: uint, avg-response: uint})
+;; O(1) via running totals. Filtering by tags/validators is indexer concern.
+
 (define-read-only (get-agent-validations (agent-id uint) (opt-cursor (optional uint)))
   {validations: (list 15 (buff 32)), cursor: (optional uint)})
 
 (define-read-only (get-validator-requests (validator principal) (opt-cursor (optional uint)))
   {requests: (list 15 (buff 32)), cursor: (optional uint)})
 ```
+
+## Aggregation Architecture
+
+**Design**: O(1) summary queries via running totals. Filtered queries (tags, clients) are indexer concerns.
+
+**On-chain**:
+- Running totals maintained in write path (`give-feedback*`, `validation-response`)
+- `get-summary` reads a single map (agent-summary) for instant results
+- Reputation: `{count: uint, wad-sum: int}` → average = wad-sum / count (18-decimal precision)
+- Validation: `{count: uint, response-total: uint}` → average = response-total / count
+- Per-feedback `wad-value` stored for exact revocation reversal
+
+**Off-chain indexer**:
+- SIP-019 events are source of truth (`NewFeedback`, `FeedbackRevoked`, `ValidationResponse`)
+- Indexer reconstructs filtered views (by tag, client, validator)
+- `FeedbackRevoked` enriched with `value` and `value-decimals` for full reconstruction
+- No on-chain pagination for filtered queries (unbounded, indexer-only)
+
+**Spec deviations** (platform-appropriate):
+- `getSummary` simplified: no filter parameters (EVM spec includes `clientAddresses`, `tags`)
+- Running totals instead of unbounded iteration (scalability for Clarity)
+- Fixed WAD precision (u18 decimals) instead of mode-decimals (simpler, lossless)
+- `FeedbackRevoked` event extended beyond EVM spec (indexer optimization)
 
 ## Testing
 

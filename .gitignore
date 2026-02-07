@@ -14,19 +14,5 @@ deployments
 
 .aider*
 
-# Ralph docs state (local only)
-ralph-docs.json
-
-# Jekyll
-docs/_site
-docs/.sass-cache
-docs/.jekyll-cache
-docs/.jekyll-metadata
-docs/Gemfile.lock
-docs/vendor
-
-# Backup files
-*.backup
-
-# Quest planning
+# Planning
 .planning/

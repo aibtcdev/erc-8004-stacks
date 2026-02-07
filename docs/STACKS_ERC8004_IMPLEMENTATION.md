@@ -25,8 +25,8 @@
    | Contract | Status | Purpose | Key Maps/Functions |
    |----------|--------|---------|--------------------|
    | `identity-registry.clar` | ✅ Done | Agent registration (ERC-721 equiv.) | `owners: {agent-id: uint} → principal`, `uris: {agent-id: uint} → (string-utf8 512)`, `metadata: {agent-id: uint, key: (string-utf8 128)} → (buff 512)`, `approvals: {agent-id: uint, operator: principal} → bool`<br>`register() → uint`, `register-with-uri((string-utf8 512)) → uint`, `register-full((string-utf8 512), (list 10 {key: (string-utf8 128), value: (buff 512)})) → uint agentId`, `owner-of(uint) → (optional principal)`, `get-uri(uint) → (optional (string-utf8 512))`, `set-agent-uri(uint, (string-utf8 512)) → (response bool uint)`, `set-metadata(uint, (string-utf8 128), (buff 512)) → (response bool uint)`, `set-approval-for-all(uint, principal, bool) → (response bool uint)`, `is-approved-for-all(uint, principal) → bool`, `get-version() → (string-utf8 8)` |
-   | `reputation-registry.clar` | ✅ Done | Feedback (score/tags/revoke/response) | Dual auth: SIP-018 signatures + on-chain approval. `feedback: {agent-id, client, index} → {score, tag1, tag2, is-revoked}`, `approved-clients: {agent-id, client} → index-limit`<br>`approve-client`, `give-feedback`, `give-feedback-signed`, `revoke-feedback`, `append-response`, `get-summary`, `read-feedback` |
-   | `validation-registry.clar` | ✅ Done | Validator requests/responses | `validations: (buff 32) → {validator, agent-id, response, response-hash, tag, last-update}`, `agent-validations: {agent-id} → (list 1024 (buff 32))`<br>`validation-request`, `validation-response`, `get-validation-status`, `get-summary`, `get-agent-validations`, `get-validator-requests` |
+   | `reputation-registry.clar` | ✅ Done | Feedback (value/tags/revoke/response) with O(1) summary | Dual auth: SIP-018 signatures + on-chain approval. `feedback: {agent-id, client, index} → {value, value-decimals, wad-value, tag1, tag2, is-revoked}`, `agent-summary: {agent-id} → {count, wad-sum}`<br>`approve-client`, `give-feedback`, `give-feedback-signed`, `revoke-feedback`, `append-response`, `get-summary` (O(1) unfiltered), `read-feedback` |
+   | `validation-registry.clar` | ✅ Done | Validator requests/responses with O(1) summary | `validations: (buff 32) → {validator, agent-id, response, response-hash, tag, last-update, has-response}`, `agent-summary: {agent-id} → {count, response-total}`<br>`validation-request`, `validation-response`, `get-validation-status`, `get-summary` (O(1) unfiltered), `get-agent-validations`, `get-validator-requests` |
 
 2. **Deployment**:
 
@@ -40,7 +40,7 @@
 
 ## Implementation Status
 
-**All contracts complete with 151 tests passing. v2.0.0 spec-compliant.**
+**All contracts complete with 149 tests passing. v2.0.0 spec-compliant.**
 
 | Component | Status | Tests | Version |
 |-----------|--------|-------|---------|
@@ -91,6 +91,56 @@
 - Revocation, response tracking, WAD-normalized summary aggregation
 - Endpoint field (emit-only, not stored on-chain)
 
+## Aggregation Architecture
+
+**Design Philosophy**: O(1) summary queries via running totals maintained in write path. Filtered queries (tags, clients, validators) are off-chain indexer concerns.
+
+### On-Chain Implementation
+
+**Reputation Registry**:
+- Running total map: `agent-summary: {agent-id} → {count: uint, wad-sum: int}`
+- Updated in: `give-feedback*` (increment count, add wad-value), `revoke-feedback` (decrement count, subtract wad-value)
+- Per-feedback `wad-value` stored for exact revocation reversal
+- `get-summary(agent-id)` reads single map, computes average: `wad-sum / count` (18-decimal precision)
+- No iteration, no pagination, no filtering parameters
+
+**Validation Registry**:
+- Running total map: `agent-summary: {agent-id} → {count: uint, response-total: uint}`
+- Updated in: `validation-response` (first response: increment count, add value; progressive: adjust total)
+- `get-summary(agent-id)` reads single map, computes average: `response-total / count`
+- No iteration, no pagination, no filtering parameters
+
+### Off-Chain Indexer Pattern
+
+**Event-Driven Reconstruction**:
+- SIP-019 events are source of truth for indexers
+- `NewFeedback`: includes `value`, `value-decimals`, `wad-value`, `tag1`, `tag2`, `endpoint`, `client`, `index`
+- `FeedbackRevoked`: enriched with `value` and `value-decimals` (beyond EVM spec) for full reconstruction without reading original feedback
+- `ValidationResponse`: includes `response`, `tag`, `validator`, `agent-id`
+
+**Indexer Capabilities** (not on-chain):
+- Filter by tags: `get-summary(agent-id, tag1="verified", tag2="")`
+- Filter by clients: `get-summary(agent-id, clients=[addr1, addr2])`
+- Filter by validators: `get-summary(agent-id, validators=[addr1])`
+- Pagination for large result sets
+- Historical snapshots at specific blocks
+
+### Spec Deviations (Platform-Appropriate)
+
+| Feature | EVM Spec (v2.0.0) | Stacks Implementation | Rationale |
+|---------|-------------------|----------------------|-----------|
+| `getSummary` parameters | `(agentId, clientAddresses[], tags[])` | `(agent-id)` only | Unbounded iteration is gas-prohibitive in Clarity. Running totals enable instant unfiltered queries. Filtering is indexer concern. |
+| Summary precision | Mode-decimals (most common `valueDecimals` in filtered set) | Fixed WAD (u18 decimals) | Mode calculation requires iteration. WAD is lossless and standard. Caller can rescale if needed. |
+| `FeedbackRevoked` event | `(agentId, client, index)` | `(agent-id, client, index, value, value-decimals)` | Indexer optimization: enables full reconstruction without reading original feedback from chain state. |
+| Pagination | `cursor` in `getSummary` | No pagination in `get-summary` | Unfiltered summary is O(1), no page needed. Pagination remains in `read-all-feedback` and other list-returning functions. |
+
+**Why These Deviations Are Appropriate**:
+1. **Gas Model Differences**: Ethereum gas is per-operation with large block gas limits. Clarity has runtime cost per-function with smaller limits. Unbounded iteration fails in Clarity but succeeds in Solidity.
+2. **Storage Model**: Solidity can efficiently iterate over dynamic arrays. Clarity maps are O(1) read but not iterable. Running totals leverage Clarity's strength.
+3. **Indexer Maturity**: Ethereum has mature subgraph infrastructure. Stacks indexers are emerging. Enriched events (like extended `FeedbackRevoked`) accelerate indexer development without on-chain cost.
+
+**Multichain Compatibility**: Off-chain indexers can normalize across chains, presenting uniform filtered APIs to clients. On-chain divergence in `getSummary` does not break the ERC-8004 multichain namespace.
+
 ## Deployment Status
 
 **Testnet**: ✅ Deployed to `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18`
@@ -105,7 +155,7 @@
 
 **Quest**: Upgrade from v1.0.0 to v2.0.0 spec compliance
 **Status**: ✅ Complete (7 phases, 0-6)
-**Result**: All breaking changes implemented, 151 tests passing (up from 73 at v1.0.0)
+**Result**: All breaking changes implemented, 149 tests passing (up from 73 at v1.0.0)
 
 **Phases**:
 - Phase 0: NFT migration + SIP-009 trait (4 commits, 81 tests)
@@ -191,7 +241,7 @@ All three registries declare `(impl-trait .{trait}.{trait})` for compile-time si
 - Validation: `get-agent-validations`, `get-validator-requests`, `get-summary`
 - All tests verify cursor-based pagination and data correctness
 
-**Result**: All 151 tests passing (131 existing + 20 stress). Cost analysis via `npm run test:report` confirms functions stay within limits.
+**Result**: All 149 tests passing (129 functional + 20 stress). Cost analysis via `npm run test:report` confirms functions stay within limits.
 
 ### Phase 6: Documentation
 

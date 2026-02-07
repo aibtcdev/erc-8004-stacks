@@ -8,33 +8,33 @@ cache_dir = './.cache'
 [[project.requirements]]
 contract_id = 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait'
 
-[contracts.identity-registry]
-path = 'contracts/identity-registry.clar'
+[contracts.identity-registry-v2]
+path = 'contracts/identity-registry-v2.clar'
 clarity_version = 4
 epoch = 'latest'
 
-[contracts.reputation-registry]
-path = 'contracts/reputation-registry.clar'
+[contracts.reputation-registry-v2]
+path = 'contracts/reputation-registry-v2.clar'
 clarity_version = 4
 epoch = 'latest'
 
-[contracts.validation-registry]
-path = 'contracts/validation-registry.clar'
+[contracts.validation-registry-v2]
+path = 'contracts/validation-registry-v2.clar'
 clarity_version = 4
 epoch = 'latest'
 
-[contracts.identity-registry-trait]
-path = 'contracts/traits/identity-registry-trait.clar'
+[contracts.identity-registry-trait-v2]
+path = 'contracts/traits/identity-registry-trait-v2.clar'
 clarity_version = 4
 epoch = 'latest'
 
-[contracts.reputation-registry-trait]
-path = 'contracts/traits/reputation-registry-trait.clar'
+[contracts.reputation-registry-trait-v2]
+path = 'contracts/traits/reputation-registry-trait-v2.clar'
 clarity_version = 4
 epoch = 'latest'
 
-[contracts.validation-registry-trait]
-path = 'contracts/traits/validation-registry-trait.clar'
+[contracts.validation-registry-trait-v2]
+path = 'contracts/traits/validation-registry-trait-v2.clar'
 clarity_version = 4
 epoch = 'latest'
 

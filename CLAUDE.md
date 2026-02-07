@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ERC-8004 Stacks Contracts - Clarity smart contracts implementing the ERC-8004 agent identity/reputation/validation protocol for Stacks blockchain. Mirrors the [Solidity reference implementation](https://github.com/erc8004-org/erc8004-contracts).
+ERC-8004 Stacks Contracts - Clarity smart contracts implementing the ERC-8004 agent identity/reputation/validation protocol for Stacks blockchain. Mirrors the [Solidity reference implementation](https://github.com/erc-8004/erc-8004-contracts).
 
 **Current Status**: All three registries ✅ complete with 149 tests passing. v2.0.0 spec-compliant. Deployed to testnet.
 
@@ -42,9 +42,9 @@ Three contracts implementing ERC-8004 spec as chain singletons:
 
 | Contract | Purpose | Status |
 |----------|---------|--------|
-| `identity-registry.clar` | Agent identity as NFT (SIP-009), agent wallet (dual-path auth), metadata | ✅ v2.0.0 |
-| `reputation-registry.clar` | Feedback with signed values (int + decimals), permissionless + self-feedback guard, string tags | ✅ v2.0.0 |
-| `validation-registry.clar` | Progressive validation responses, string tags | ✅ v2.0.0 |
+| `identity-registry-v2.clar` | Agent identity as NFT (SIP-009), agent wallet (dual-path auth), metadata | ✅ v2.0.0 |
+| `reputation-registry-v2.clar` | Feedback with signed values (int + decimals), permissionless + self-feedback guard, string tags | ✅ v2.0.0 |
+| `validation-registry-v2.clar` | Progressive validation responses, string tags | ✅ v2.0.0 |
 
 **v2.0.0 Features**:
 - **NFT Identity**: Native Clarity NFT with SIP-009 trait (transfer, get-owner, get-last-token-id, get-token-uri)
@@ -89,7 +89,7 @@ Three contracts implementing ERC-8004 spec as chain singletons:
 **Events** follow SIP-019 pattern:
 ```clarity
 (print {
-  notification: "identity-registry/AgentRegistered",
+  notification: "identity-registry/Registered",
   payload: { agent-id: agent-id, owner: tx-sender }
 })
 ```
@@ -212,11 +212,11 @@ const accounts = simnet.getAccounts();
 const address1 = accounts.get("wallet_1")!;
 
 // Public function
-const { result } = simnet.callPublicFn("identity-registry", "register", [], address1);
+const { result } = simnet.callPublicFn("identity-registry-v2", "register", [], address1);
 expect(result).toBeOk(uintCV(0n));
 
 // Read-only function
-const { result } = simnet.callReadOnlyFn("identity-registry", "owner-of", [uintCV(0n)], address1);
+const { result } = simnet.callReadOnlyFn("identity-registry-v2", "owner-of", [uintCV(0n)], address1);
 expect(result).toBeSome(Cl.principal(address1));
 ```
 
@@ -228,18 +228,15 @@ Three trait contracts define interfaces for cross-contract conformance:
 
 | Trait | Functions | Notes |
 |-------|-----------|-------|
-| `identity-registry-trait.clar` | 14 functions | All public functions + SIP-009 + is-authorized-or-owner. Requires `(response ...)` return types. |
-| `reputation-registry-trait.clar` | 6 functions | All public state-changing functions (give-feedback, revoke-feedback, approve-client, append-response). |
-| `validation-registry-trait.clar` | 2 functions | All public state-changing functions (validation-request, validation-response). |
+| `identity-registry-trait-v2.clar` | 14 functions | All public functions + SIP-009 + is-authorized-or-owner. Requires `(response ...)` return types. |
+| `reputation-registry-trait-v2.clar` | 6 functions | All public state-changing functions (give-feedback, revoke-feedback, approve-client, append-response). |
+| `validation-registry-trait-v2.clar` | 2 functions | All public state-changing functions (validation-request, validation-response). |
 
 **Implementation**: Each registry declares `(impl-trait .{trait-name}.{trait-name})` for compile-time verification.
 
 **Hybrid approach**: Clarity traits require `(response ...)` returns, so raw-return read-only functions (returning `optional`, `uint`, tuples) are documented but not trait-enforced. This is a Clarity language constraint, not a design choice.
 
-## Reference Documentation
+## Reference
 
-- **GitHub Pages**: https://aibtcdev.github.io/erc-8004-stacks
-- Implementation plan: `docs/STACKS_ERC8004_IMPLEMENTATION.md`
-- Clarity language reference: `docs/CLARITY_REFERENCE.md`
-- Solidity reference: `docs/erc8004-contracts-*.md`
-- ERC-8004 spec: `docs/erc8004-proposal-text.md`
+- ERC-8004 spec: [erc-8004/erc-8004-contracts](https://github.com/erc-8004/erc-8004-contracts)
+- Stacks implementation details: see `AGENTS.md`

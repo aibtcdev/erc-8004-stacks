@@ -43,7 +43,7 @@
 ;; (no EVM equivalent)                 | get-auth-message-hash             | Stacks enhancement: off-chain tooling
 
 ;; traits
-(impl-trait .reputation-registry-trait.reputation-registry-trait)
+(impl-trait .reputation-registry-trait-v2.reputation-registry-trait)
 ;;
 
 ;; token definitions
@@ -149,7 +149,7 @@
     (caller tx-sender)
     (current-index (default-to u0 (map-get? last-index {agent-id: agent-id, client: caller})))
     (next-index (+ current-index u1))
-    (auth-check (contract-call? .identity-registry is-authorized-or-owner caller agent-id))
+    (auth-check (contract-call? .identity-registry-v2 is-authorized-or-owner caller agent-id))
     (current-global-index (default-to u0 (map-get? last-global-index {agent-id: agent-id})))
     (next-global-index (+ current-global-index u1))
   )
@@ -226,7 +226,7 @@
     (current-index (default-to u0 (map-get? last-index {agent-id: agent-id, client: caller})))
     (next-index (+ current-index u1))
     (approved-limit (default-to u0 (map-get? approved-clients {agent-id: agent-id, client: caller})))
-    (auth-check (contract-call? .identity-registry is-authorized-or-owner caller agent-id))
+    (auth-check (contract-call? .identity-registry-v2 is-authorized-or-owner caller agent-id))
     (current-global-index (default-to u0 (map-get? last-global-index {agent-id: agent-id})))
     (next-global-index (+ current-global-index u1))
   )
@@ -308,7 +308,7 @@
     (caller tx-sender)
     (current-index (default-to u0 (map-get? last-index {agent-id: agent-id, client: caller})))
     (next-index (+ current-index u1))
-    (auth-check (contract-call? .identity-registry is-authorized-or-owner caller agent-id))
+    (auth-check (contract-call? .identity-registry-v2 is-authorized-or-owner caller agent-id))
     (current-global-index (default-to u0 (map-get? last-global-index {agent-id: agent-id})))
     (next-global-index (+ current-global-index u1))
   )
@@ -631,7 +631,7 @@
 )
 
 (define-read-only (get-identity-registry)
-  .identity-registry
+  .identity-registry-v2
 )
 
 (define-read-only (get-version)
@@ -664,12 +664,12 @@
 
 (define-private (is-authorized (agent-id uint) (caller principal))
   (let (
-    (owner-opt (contract-call? .identity-registry owner-of agent-id))
+    (owner-opt (contract-call? .identity-registry-v2 owner-of agent-id))
   )
     (match owner-opt owner
       (or
         (is-eq caller owner)
-        (contract-call? .identity-registry is-approved-for-all agent-id caller)
+        (contract-call? .identity-registry-v2 is-approved-for-all agent-id caller)
       )
       false
     )

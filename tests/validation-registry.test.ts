@@ -29,7 +29,7 @@ function hashFromString(s: string): Uint8Array {
 // Register an agent and return its ID
 function registerAgent(owner: string): bigint {
   const { result } = simnet.callPublicFn(
-    "identity-registry",
+    "identity-registry-v2",
     "register",
     [],
     owner
@@ -37,7 +37,7 @@ function registerAgent(owner: string): bigint {
   return (result as any).value.value;
 }
 
-describe("validation-registry public functions", () => {
+describe("validation-registry-v2 public functions", () => {
   it("validation-request() creates a new validation request by owner", () => {
     // arrange
     const agentId = registerAgent(address1);
@@ -46,7 +46,7 @@ describe("validation-registry public functions", () => {
 
     // act
     const { result } = simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address2), uintCV(agentId), requestUri, requestHash],
       address1
@@ -60,7 +60,7 @@ describe("validation-registry public functions", () => {
     // arrange
     const agentId = registerAgent(address1);
     simnet.callPublicFn(
-      "identity-registry",
+      "identity-registry-v2",
       "set-approval-for-all",
       [uintCV(agentId), principalCV(address3), Cl.bool(true)],
       address1
@@ -70,7 +70,7 @@ describe("validation-registry public functions", () => {
 
     // act
     const { result } = simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address2), uintCV(agentId), requestUri, requestHash],
       address3
@@ -88,7 +88,7 @@ describe("validation-registry public functions", () => {
 
     // act
     const { result } = simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address3), uintCV(agentId), requestUri, requestHash],
       address2
@@ -105,7 +105,7 @@ describe("validation-registry public functions", () => {
     const requestUri = stringUtf8CV("ipfs://request-uri");
 
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address2), uintCV(agentId), requestUri, requestHash],
       address1
@@ -113,7 +113,7 @@ describe("validation-registry public functions", () => {
 
     // act - try to create with same hash
     const { result } = simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address3), uintCV(agentId), requestUri, requestHash],
       address1
@@ -131,7 +131,7 @@ describe("validation-registry public functions", () => {
 
     // act
     const { result } = simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address1), uintCV(agentId), requestUri, requestHash],
       address1
@@ -151,7 +151,7 @@ describe("validation-registry public functions", () => {
     const tag = stringUtf8CV("verified");
 
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address2), uintCV(agentId), requestUri, requestHash],
       address1
@@ -159,7 +159,7 @@ describe("validation-registry public functions", () => {
 
     // act
     const { result } = simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [requestHash, uintCV(85n), responseUri, responseHash, tag],
       address2
@@ -179,7 +179,7 @@ describe("validation-registry public functions", () => {
     const tag = stringUtf8CV("verified");
 
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address2), uintCV(agentId), requestUri, requestHash],
       address1
@@ -187,7 +187,7 @@ describe("validation-registry public functions", () => {
 
     // act - address3 tries to respond but address2 is the validator
     const { result } = simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [requestHash, uintCV(85n), responseUri, responseHash, tag],
       address3
@@ -207,7 +207,7 @@ describe("validation-registry public functions", () => {
     const tag = stringUtf8CV("verified");
 
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address2), uintCV(agentId), requestUri, requestHash],
       address1
@@ -215,7 +215,7 @@ describe("validation-registry public functions", () => {
 
     // act
     const { result } = simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [requestHash, uintCV(101n), responseUri, responseHash, tag],
       address2
@@ -234,7 +234,7 @@ describe("validation-registry public functions", () => {
 
     // act
     const { result } = simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [requestHash, uintCV(85n), responseUri, responseHash, tag],
       address2
@@ -255,7 +255,7 @@ describe("validation-registry public functions", () => {
     const tag = stringUtf8CV("verified");
 
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address2), uintCV(agentId), requestUri, requestHash],
       address1
@@ -263,7 +263,7 @@ describe("validation-registry public functions", () => {
 
     // act - first response
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [requestHash, uintCV(50n), responseUri1, responseHash, tag],
       address2
@@ -271,7 +271,7 @@ describe("validation-registry public functions", () => {
 
     // act - update response
     const { result } = simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [requestHash, uintCV(100n), responseUri2, responseHash, tag],
       address2
@@ -282,7 +282,7 @@ describe("validation-registry public functions", () => {
 
     // verify updated value
     const status = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-validation-status",
       [requestHash],
       deployer
@@ -299,7 +299,7 @@ describe("validation-registry public functions", () => {
     const responseHash = bufferCV(hashFromString("response-hash"));
 
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address2), uintCV(agentId), requestUri, requestHash],
       address1
@@ -307,7 +307,7 @@ describe("validation-registry public functions", () => {
 
     // act - preliminary response
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [requestHash, uintCV(50n), stringUtf8CV("r1"), responseHash, stringUtf8CV("preliminary")],
       address2
@@ -315,7 +315,7 @@ describe("validation-registry public functions", () => {
 
     // act - final response with different tag
     const { result } = simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [requestHash, uintCV(85n), stringUtf8CV("r2"), responseHash, stringUtf8CV("final")],
       address2
@@ -326,7 +326,7 @@ describe("validation-registry public functions", () => {
 
     // verify final tag is stored
     const status = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-validation-status",
       [requestHash],
       deployer
@@ -346,7 +346,7 @@ describe("validation-registry public functions", () => {
     const tag = stringUtf8CV("verified");
 
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address2), uintCV(agentId), requestUri, requestHash],
       address1
@@ -354,7 +354,7 @@ describe("validation-registry public functions", () => {
 
     // act - high response first
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [requestHash, uintCV(100n), stringUtf8CV("r1"), responseHash, tag],
       address2
@@ -362,7 +362,7 @@ describe("validation-registry public functions", () => {
 
     // act - decrease response
     const { result } = simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [requestHash, uintCV(50n), stringUtf8CV("r2"), responseHash, tag],
       address2
@@ -373,7 +373,7 @@ describe("validation-registry public functions", () => {
 
     // verify decreased value
     const status = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-validation-status",
       [requestHash],
       deployer
@@ -391,13 +391,13 @@ describe("validation-registry public functions", () => {
 
     // Create 2 validation requests
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address2), uintCV(agentId), stringUtf8CV("uri1"), bufferCV(hash1)],
       address1
     );
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address3), uintCV(agentId), stringUtf8CV("uri2"), bufferCV(hash2)],
       address1
@@ -405,13 +405,13 @@ describe("validation-registry public functions", () => {
 
     // Initial responses: 60 and 80 (avg = 70)
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [bufferCV(hash1), uintCV(60n), stringUtf8CV("r1"), responseHash, tag],
       address2
     );
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [bufferCV(hash2), uintCV(80n), stringUtf8CV("r2"), responseHash, tag],
       address3
@@ -419,7 +419,7 @@ describe("validation-registry public functions", () => {
 
     // Check initial summary
     let result = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-summary",
       [uintCV(agentId)],
       deployer
@@ -433,7 +433,7 @@ describe("validation-registry public functions", () => {
 
     // Progressive update: change hash1 from 60 to 90 (new avg = 85)
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [bufferCV(hash1), uintCV(90n), stringUtf8CV("r1-updated"), responseHash, tag],
       address2
@@ -441,7 +441,7 @@ describe("validation-registry public functions", () => {
 
     // act - check updated summary
     result = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-summary",
       [uintCV(agentId)],
       deployer
@@ -467,19 +467,19 @@ describe("validation-registry public functions", () => {
 
     // Create 3 validation requests
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address2), uintCV(agentId), stringUtf8CV("uri1"), bufferCV(hash1)],
       address1
     );
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address3), uintCV(agentId), stringUtf8CV("uri2"), bufferCV(hash2)],
       address1
     );
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address2), uintCV(agentId), stringUtf8CV("uri3"), bufferCV(hash3)],
       address1
@@ -487,7 +487,7 @@ describe("validation-registry public functions", () => {
 
     // Only respond to hash2
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [bufferCV(hash2), uintCV(90n), stringUtf8CV("r2"), responseHash, tag],
       address3
@@ -495,7 +495,7 @@ describe("validation-registry public functions", () => {
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-summary",
       [uintCV(agentId)],
       deployer
@@ -511,7 +511,7 @@ describe("validation-registry public functions", () => {
   });
 });
 
-describe("validation-registry read-only functions", () => {
+describe("validation-registry-v2 read-only functions", () => {
   it("get-validation-status() returns validation data", () => {
     // arrange
     const agentId = registerAgent(address1);
@@ -519,7 +519,7 @@ describe("validation-registry read-only functions", () => {
     const requestUri = stringUtf8CV("ipfs://request-uri");
 
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [principalCV(address2), uintCV(agentId), requestUri, requestHash],
       address1
@@ -527,7 +527,7 @@ describe("validation-registry read-only functions", () => {
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-validation-status",
       [requestHash],
       deployer
@@ -550,7 +550,7 @@ describe("validation-registry read-only functions", () => {
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-validation-status",
       [requestHash],
       deployer
@@ -567,7 +567,7 @@ describe("validation-registry read-only functions", () => {
     const hash2 = hashFromString("agent-val-2");
 
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [
         principalCV(address2),
@@ -578,7 +578,7 @@ describe("validation-registry read-only functions", () => {
       address1
     );
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [
         principalCV(address3),
@@ -591,7 +591,7 @@ describe("validation-registry read-only functions", () => {
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-agent-validations",
       [uintCV(agentId), Cl.none()],
       deployer
@@ -614,7 +614,7 @@ describe("validation-registry read-only functions", () => {
     const hash2 = hashFromString("validator-req-2");
 
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [
         principalCV(address2),
@@ -625,7 +625,7 @@ describe("validation-registry read-only functions", () => {
       address1
     );
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [
         principalCV(address2),
@@ -638,7 +638,7 @@ describe("validation-registry read-only functions", () => {
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-validator-requests",
       [principalCV(address2), Cl.none()],
       deployer
@@ -662,7 +662,7 @@ describe("validation-registry read-only functions", () => {
     const responseHash = bufferCV(hashFromString("resp"));
 
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [
         principalCV(address2),
@@ -673,7 +673,7 @@ describe("validation-registry read-only functions", () => {
       address1
     );
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-request",
       [
         principalCV(address3),
@@ -686,13 +686,13 @@ describe("validation-registry read-only functions", () => {
 
     // Respond with scores 80 and 100
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [bufferCV(hash1), uintCV(80n), stringUtf8CV("r1"), responseHash, tag],
       address2
     );
     simnet.callPublicFn(
-      "validation-registry",
+      "validation-registry-v2",
       "validation-response",
       [bufferCV(hash2), uintCV(100n), stringUtf8CV("r2"), responseHash, tag],
       address3
@@ -700,7 +700,7 @@ describe("validation-registry read-only functions", () => {
 
     // act
     const { result } = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-summary",
       [uintCV(agentId)],
       deployer
@@ -718,7 +718,7 @@ describe("validation-registry read-only functions", () => {
   it("get-identity-registry() returns identity registry principal", () => {
     // act
     const { result } = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-identity-registry",
       [],
       deployer
@@ -726,14 +726,14 @@ describe("validation-registry read-only functions", () => {
 
     // assert
     expect(result).toStrictEqual(
-      principalCV(`${deployer}.identity-registry`)
+      principalCV(`${deployer}.identity-registry-v2`)
     );
   });
 
   it("get-version() returns contract version", () => {
     // act
     const { result } = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-version",
       [],
       deployer
@@ -744,7 +744,7 @@ describe("validation-registry read-only functions", () => {
   });
 });
 
-describe("validation-registry pagination", () => {
+describe("validation-registry-v2 pagination", () => {
   it("get-agent-validations() paginates correctly with 20 validations", () => {
     // arrange
     const agentId = registerAgent(address1);
@@ -761,7 +761,7 @@ describe("validation-registry pagination", () => {
       const validatorAddr = validators[i % validators.length];
       const hash = hashFromString(`validation-${i}`);
       simnet.callPublicFn(
-        "validation-registry",
+        "validation-registry-v2",
         "validation-request",
         [
           principalCV(validatorAddr),
@@ -775,7 +775,7 @@ describe("validation-registry pagination", () => {
 
     // act - get first page (up to 14 validations)
     const page1Result = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-agent-validations",
       [uintCV(agentId), Cl.none()],
       deployer
@@ -790,7 +790,7 @@ describe("validation-registry pagination", () => {
 
     // act - get second page
     const page2Result = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-agent-validations",
       [uintCV(agentId), cursor1],
       deployer
@@ -817,7 +817,7 @@ describe("validation-registry pagination", () => {
       const agentId = agents[i % agents.length];
       const hash = hashFromString(`request-${i}`);
       simnet.callPublicFn(
-        "validation-registry",
+        "validation-registry-v2",
         "validation-request",
         [
           principalCV(address2),
@@ -831,7 +831,7 @@ describe("validation-registry pagination", () => {
 
     // act - get first page (up to 14 requests)
     const page1Result = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-validator-requests",
       [principalCV(address2), Cl.none()],
       deployer
@@ -846,7 +846,7 @@ describe("validation-registry pagination", () => {
 
     // act - get second page
     const page2Result = simnet.callReadOnlyFn(
-      "validation-registry",
+      "validation-registry-v2",
       "get-validator-requests",
       [principalCV(address2), cursor1],
       deployer

@@ -35,16 +35,8 @@
 ;; getApproved / isApprovedForAll      | is-approved-for-all               | Exact match
 
 ;; traits
-(define-trait nft-trait
-  (
-    (get-last-token-id () (response uint uint))
-    (get-token-uri (uint) (response (optional (string-ascii 256)) uint))
-    (get-owner (uint) (response (optional principal) uint))
-    (transfer (uint principal principal) (response bool uint))
-  )
-)
-
 (impl-trait .identity-registry-trait.identity-registry-trait)
+(use-trait nft-trait 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait.nft-trait)
 ;;
 
 ;; token definitions

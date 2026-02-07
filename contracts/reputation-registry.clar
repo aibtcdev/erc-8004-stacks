@@ -28,9 +28,11 @@
 (define-constant VERSION u"2.0.0")
 
 ;; Page size for list pagination (read-only functions)
-;; Set to 15 to stay within mainnet 30-read limit (15 items x 2 reads = 30)
-(define-constant PAGE_SIZE u15)
-(define-constant PAGE_INDEX_LIST (list u1 u2 u3 u4 u5 u6 u7 u8 u9 u10 u11 u12 u13 u14 u15))
+;; Set to 14 to stay within mainnet default read_only_call_limit_read_count = 30
+;; Single-read fns: 1 counter + 14 items = 15 reads
+;; Double-read fns (read-all-feedback): 1 counter + 14 items x 2 = 29 reads
+(define-constant PAGE_SIZE u14)
+(define-constant PAGE_INDEX_LIST (list u1 u2 u3 u4 u5 u6 u7 u8 u9 u10 u11 u12 u13 u14))
 
 ;; SIP-018 constants
 (define-constant SIP018_PREFIX 0x534950303138)
@@ -692,13 +694,13 @@
     tag1: (optional (string-utf8 64)),
     tag2: (optional (string-utf8 64)),
     include-revoked: bool,
-    items: (list 15 {client: principal, index: uint, value: int, value-decimals: uint, wad-value: int, tag1: (string-utf8 64), tag2: (string-utf8 64), is-revoked: bool}),
+    items: (list 14 {client: principal, index: uint, value: int, value-decimals: uint, wad-value: int, tag1: (string-utf8 64), tag2: (string-utf8 64), is-revoked: bool}),
     cursor-offset: uint,
     last-global: uint
   })
 )
   (let ((global-idx (+ idx (get cursor-offset acc))))
-    (if (or (> global-idx (get last-global acc)) (>= (len (get items acc)) u15))
+    (if (or (> global-idx (get last-global acc)) (>= (len (get items acc)) u14))
       acc
       (let (
         (pointer-opt (map-get? global-feedback-index {agent-id: (get agent-id acc), global-index: global-idx}))
@@ -731,7 +733,7 @@
                     tag1: (get tag1 fb),
                     tag2: (get tag2 fb),
                     is-revoked: (get is-revoked fb)
-                  }) u15)
+                  }) u14)
                     new-items (merge acc {items: new-items})
                     acc
                   )
@@ -828,7 +830,7 @@
 ;; Helper for building paginated client lists
 (define-private (build-client-list-fold
   (idx uint)
-  (acc {agent-id: uint, cursor-offset: uint, total-count: uint, clients: (list 15 principal)})
+  (acc {agent-id: uint, cursor-offset: uint, total-count: uint, clients: (list 14 principal)})
 )
   (let ((actual-idx (+ idx (get cursor-offset acc))))
     (if (> actual-idx (get total-count acc))
@@ -837,7 +839,7 @@
         (client-opt (map-get? client-at-index {agent-id: (get agent-id acc), index: actual-idx}))
       )
         (match client-opt client
-          (match (as-max-len? (append (get clients acc) client) u15)
+          (match (as-max-len? (append (get clients acc) client) u14)
             new-clients (merge acc {clients: new-clients})
             acc
           )
@@ -851,7 +853,7 @@
 ;; Helper for building paginated responder lists
 (define-private (build-responder-list-fold
   (idx uint)
-  (acc {agent-id: uint, client: principal, index: uint, cursor-offset: uint, total-count: uint, responders: (list 15 principal)})
+  (acc {agent-id: uint, client: principal, index: uint, cursor-offset: uint, total-count: uint, responders: (list 14 principal)})
 )
   (let ((actual-idx (+ idx (get cursor-offset acc))))
     (if (> actual-idx (get total-count acc))
@@ -865,7 +867,7 @@
         }))
       )
         (match responder-opt responder
-          (match (as-max-len? (append (get responders acc) responder) u15)
+          (match (as-max-len? (append (get responders acc) responder) u14)
             new-responders (merge acc {responders: new-responders})
             acc
           )

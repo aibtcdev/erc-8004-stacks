@@ -21,9 +21,10 @@
 (define-constant VERSION u"2.0.0")
 
 ;; Page size for list pagination (read-only functions)
-;; Set to 15 to stay within mainnet 30-read limit (15 items x 2 reads = 30)
-(define-constant PAGE_SIZE u15)
-(define-constant PAGE_INDEX_LIST (list u1 u2 u3 u4 u5 u6 u7 u8 u9 u10 u11 u12 u13 u14 u15))
+;; Set to 14 to stay within mainnet default read_only_call_limit_read_count = 30
+;; Single-read fns: 1 counter + 14 items = 15 reads
+(define-constant PAGE_SIZE u14)
+(define-constant PAGE_INDEX_LIST (list u1 u2 u3 u4 u5 u6 u7 u8 u9 u10 u11 u12 u13 u14))
 ;;
 
 ;; data vars
@@ -263,7 +264,7 @@
 ;; Helper for building paginated agent validation lists
 (define-private (build-validation-list-fold
   (idx uint)
-  (acc {agent-id: uint, cursor-offset: uint, total-count: uint, validations: (list 15 (buff 32))})
+  (acc {agent-id: uint, cursor-offset: uint, total-count: uint, validations: (list 14 (buff 32))})
 )
   (let ((actual-idx (+ idx (get cursor-offset acc))))
     (if (> actual-idx (get total-count acc))
@@ -272,7 +273,7 @@
         (hash-opt (map-get? agent-validation-at-index {agent-id: (get agent-id acc), index: actual-idx}))
       )
         (match hash-opt hash
-          (match (as-max-len? (append (get validations acc) hash) u15)
+          (match (as-max-len? (append (get validations acc) hash) u14)
             new-validations (merge acc {validations: new-validations})
             acc
           )
@@ -286,7 +287,7 @@
 ;; Helper for building paginated validator request lists
 (define-private (build-request-list-fold
   (idx uint)
-  (acc {validator: principal, cursor-offset: uint, total-count: uint, requests: (list 15 (buff 32))})
+  (acc {validator: principal, cursor-offset: uint, total-count: uint, requests: (list 14 (buff 32))})
 )
   (let ((actual-idx (+ idx (get cursor-offset acc))))
     (if (> actual-idx (get total-count acc))
@@ -295,7 +296,7 @@
         (hash-opt (map-get? validator-request-at-index {validator: (get validator acc), index: actual-idx}))
       )
         (match hash-opt hash
-          (match (as-max-len? (append (get requests acc) hash) u15)
+          (match (as-max-len? (append (get requests acc) hash) u14)
             new-requests (merge acc {requests: new-requests})
             acc
           )

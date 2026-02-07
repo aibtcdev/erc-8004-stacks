@@ -137,15 +137,15 @@ Three contracts implementing ERC-8004 spec as chain singletons:
   (opt-tag1 (optional (string-utf8 64))) ;; optional tags for filtering
   (opt-tag2 (optional (string-utf8 64)))
   (include-revoked bool)
-  (opt-cursor (optional uint)) ;; pagination via global sequence, page size 15
-) {items: (list 15 {...}), cursor: (optional uint)})
+  (opt-cursor (optional uint)) ;; pagination via global sequence, page size 14
+) {items: (list 14 {...}), cursor: (optional uint)})
 
 (define-read-only (get-clients (agent-id uint) (opt-cursor (optional uint)))
-  {clients: (list 15 principal), cursor: (optional uint)})
+  {clients: (list 14 principal), cursor: (optional uint)})
 
 (define-read-only (get-responders
   (agent-id uint) (client principal) (index uint) (opt-cursor (optional uint)))
-  {responders: (list 15 principal), cursor: (optional uint)})
+  {responders: (list 14 principal), cursor: (optional uint)})
 
 (define-read-only (get-agent-feedback-count (agent-id uint)) uint)
 
@@ -167,10 +167,10 @@ Three contracts implementing ERC-8004 spec as chain singletons:
 ;; O(1) via running totals. Filtering by tags/validators is indexer concern.
 
 (define-read-only (get-agent-validations (agent-id uint) (opt-cursor (optional uint)))
-  {validations: (list 15 (buff 32)), cursor: (optional uint)})
+  {validations: (list 14 (buff 32)), cursor: (optional uint)})
 
 (define-read-only (get-validator-requests (validator principal) (opt-cursor (optional uint)))
-  {requests: (list 15 (buff 32)), cursor: (optional uint)})
+  {requests: (list 14 (buff 32)), cursor: (optional uint)})
 ```
 
 ## Aggregation Architecture

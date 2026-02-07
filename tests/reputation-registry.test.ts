@@ -1173,7 +1173,7 @@ describe("reputation-registry pagination", () => {
       );
     }
 
-    // act - get first page (15 clients)
+    // act - get first page (up to 14 clients)
     const page1Result = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-clients",
@@ -1227,7 +1227,7 @@ describe("reputation-registry pagination", () => {
       );
     }
 
-    // act - get first page (15 responders)
+    // act - get first page (up to 14 responders)
     const page1Result = simnet.callReadOnlyFn(
       "reputation-registry",
       "get-responders",

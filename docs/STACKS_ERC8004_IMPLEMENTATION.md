@@ -198,15 +198,16 @@ Following SIP community review, six phases of improvements were implemented to a
 1. **Global sequence index**: Added `last-global-index` and `global-feedback-index` maps to track feedback in creation order across all clients
    - Each feedback write adds 2 map entries (global pointer + client pointer)
    - Read-only iteration is O(page-size), predictable cost
-2. **Reduced page sizes**: `FEEDBACK_PAGE_SIZE` and `PAGE_SIZE` reduced from 50 to 15
-   - 15 items × 2 reads per item = 30 reads (at mainnet limit)
+2. **Reduced page sizes**: `FEEDBACK_PAGE_SIZE` and `PAGE_SIZE` reduced from 50 to 14
+   - Single-read fns: 1 counter + 14 items = 15 reads
+   - Double-read fns (read-all-feedback): 1 counter + 14 items × 2 = 29 reads (within 30-read limit)
    - Prevents read-only execution failures on mainnet nodes
 3. **New convenience function**: `get-agent-feedback-count` returns total feedback count for an agent
 
 **Changes**:
 - `read-all-feedback` no longer takes client list input (iterates globally)
-- All paginated functions return `{items: (list 15 ...), cursor: (optional uint)}`
-- Cursor value = offset for next page (e.g., `(some u15)` for page 2)
+- All paginated functions return `{items: (list 14 ...), cursor: (optional uint)}`
+- Cursor value = offset for next page (e.g., `(some u14)` for page 2)
 
 ### Phase 3: API Consistency
 

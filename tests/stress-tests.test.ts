@@ -38,10 +38,10 @@ const allWallets = [
  * Stress Tests - Execution Limit Testing
  *
  * These tests verify that paginated read-only functions complete within
- * Clarinet cost limits. Key constraints:
- * - PAGE_SIZE = 15 (15 items x 2 reads = 30, at mainnet read-only limit)
- * - FEEDBACK_PAGE_SIZE = 15 (same reasoning)
- * - Each paginated read = 2 map reads (index lookup + data fetch)
+ * mainnet read-only call limits. Key constraints:
+ * - PAGE_SIZE = 14 (mainnet default read_only_call_limit_read_count = 30)
+ * - Single-read fns: 1 counter + 14 items = 15 reads (within limit)
+ * - Double-read fns (read-all-feedback): 1 counter + 14 items x 2 = 29 reads (within limit)
  * - Global feedback sequence = 2 reads per feedback (global-index + feedback)
  *
  * Since simnet has only 9 test accounts, we focus on:
@@ -360,14 +360,14 @@ describe("Reputation Registry - Stress Tests", () => {
       expect(data.value.cursor.type).toBe("none"); // fits in one page
     });
 
-    it("handles mid scale with pagination (45 feedbacks = 3 pages)", () => {
+    it("handles mid scale with pagination (42 feedbacks = 3 pages)", () => {
       // arrange
       const agentId = registerAgent(wallet1);
 
-      // Create 45 feedbacks (will span 3 pages with PAGE_SIZE=15)
+      // Create 42 feedbacks (will span 3 pages with PAGE_SIZE=14)
       // Use wallets 2-8 (skip wallet1 as it's the agent owner)
       const validClients = allWallets.filter(w => w !== wallet1);
-      for (let i = 0; i < 45; i++) {
+      for (let i = 0; i < 42; i++) {
         const client = validClients[i % validClients.length];
         giveFeedback(agentId, client, BigInt(100 * (i + 1)), 0n, i + 1);
       }
@@ -388,9 +388,9 @@ describe("Reputation Registry - Stress Tests", () => {
 
       // assert page 1
       const data1 = result1.result as any;
-      expect(data1.value.items.value).toHaveLength(15);
+      expect(data1.value.items.value).toHaveLength(14);
       expect(data1.value.cursor.type).toBe("some");
-      expect(data1.value.cursor.value.value).toBe(15n);
+      expect(data1.value.cursor.value.value).toBe(14n);
 
       // act - page 2
       const result2 = simnet.callReadOnlyFn(
@@ -401,16 +401,16 @@ describe("Reputation Registry - Stress Tests", () => {
           noneCV(), // opt-tag1
           noneCV(), // opt-tag2
           Cl.bool(false), // include-revoked
-          someCV(uintCV(15n)), // opt-cursor
+          someCV(uintCV(14n)), // opt-cursor
         ],
         deployer
       );
 
       // assert page 2
       const data2 = result2.result as any;
-      expect(data2.value.items.value).toHaveLength(15);
+      expect(data2.value.items.value).toHaveLength(14);
       expect(data2.value.cursor.type).toBe("some");
-      expect(data2.value.cursor.value.value).toBe(30n);
+      expect(data2.value.cursor.value.value).toBe(28n);
 
       // act - page 3
       const result3 = simnet.callReadOnlyFn(
@@ -421,25 +421,25 @@ describe("Reputation Registry - Stress Tests", () => {
           noneCV(), // opt-tag1
           noneCV(), // opt-tag2
           Cl.bool(false), // include-revoked
-          someCV(uintCV(30n)), // opt-cursor
+          someCV(uintCV(28n)), // opt-cursor
         ],
         deployer
       );
 
       // assert page 3
       const data3 = result3.result as any;
-      expect(data3.value.items.value).toHaveLength(15);
+      expect(data3.value.items.value).toHaveLength(14);
       expect(data3.value.cursor.type).toBe("none"); // last page
     });
 
-    it("handles high scale with pagination (90 feedbacks = 6 pages)", () => {
+    it("handles high scale with pagination (84 feedbacks = 6 pages)", () => {
       // arrange
       const agentId = registerAgent(wallet1);
 
-      // Create 90 feedbacks (will span 6 pages with PAGE_SIZE=15)
+      // Create 84 feedbacks (will span 6 pages with PAGE_SIZE=14)
       // Use wallets 2-8 (skip wallet1 as it's the agent owner)
       const validClients = allWallets.filter(w => w !== wallet1);
-      for (let i = 0; i < 90; i++) {
+      for (let i = 0; i < 84; i++) {
         const client = validClients[i % validClients.length];
         giveFeedback(agentId, client, BigInt(100 * (i + 1)), 0n, i + 1);
       }
@@ -476,7 +476,7 @@ describe("Reputation Registry - Stress Tests", () => {
       }
 
       // assert
-      expect(totalItems).toBe(90);
+      expect(totalItems).toBe(84);
       expect(pageCount).toBe(6);
     });
   });
@@ -651,20 +651,20 @@ describe("Validation Registry - Stress Tests", () => {
 
       // assert page 1
       const data1 = result1.result as any;
-      expect(data1.value.validations.value).toHaveLength(15);
+      expect(data1.value.validations.value).toHaveLength(14);
       expect(data1.value.cursor.type).toBe("some");
 
       // act - page 2
       const result2 = simnet.callReadOnlyFn(
         "validation-registry",
         "get-agent-validations",
-        [uintCV(agentId), someCV(uintCV(15n))],
+        [uintCV(agentId), someCV(uintCV(14n))],
         deployer
       );
 
       // assert page 2
       const data2 = result2.result as any;
-      expect(data2.value.validations.value).toHaveLength(12);
+      expect(data2.value.validations.value).toHaveLength(13);
       expect(data2.value.cursor.type).toBe("none");
     });
   });
@@ -740,20 +740,20 @@ describe("Validation Registry - Stress Tests", () => {
 
       // assert page 1
       const data1 = result1.result as any;
-      expect(data1.value.requests.value).toHaveLength(15);
+      expect(data1.value.requests.value).toHaveLength(14);
       expect(data1.value.cursor.type).toBe("some");
 
       // act - page 2
       const result2 = simnet.callReadOnlyFn(
         "validation-registry",
         "get-validator-requests",
-        [principalCV(validator), someCV(uintCV(15n))],
+        [principalCV(validator), someCV(uintCV(14n))],
         deployer
       );
 
       // assert page 2
       const data2 = result2.result as any;
-      expect(data2.value.requests.value).toHaveLength(5);
+      expect(data2.value.requests.value).toHaveLength(6);
       expect(data2.value.cursor.type).toBe("none");
     });
   });
@@ -815,13 +815,13 @@ describe("Validation Registry - Stress Tests", () => {
       expect(data.value.count.value).toBe(9n);
     });
 
-    it("handles high scale (15 validations)", () => {
+    it("handles high scale (14 validations)", () => {
       // arrange
       const agentId = registerAgent(wallet1);
 
-      // Create 15 validation requests (wallet1 cannot validate itself, so skip it)
+      // Create 14 validation requests (wallet1 cannot validate itself, so skip it)
       const validValidators = allWallets.filter(w => w !== wallet1);
-      for (let i = 0; i < 15; i++) {
+      for (let i = 0; i < 14; i++) {
         const validator = validValidators[i % validValidators.length];
         const hash = createValidationRequest(agentId, wallet1, validator, i + 1);
         // Add response (tag filtering is indexer's job now)
@@ -838,7 +838,7 @@ describe("Validation Registry - Stress Tests", () => {
 
       // assert
       const data = result.result as any;
-      expect(data.value.count.value).toBe(15n);
+      expect(data.value.count.value).toBe(14n);
     });
   });
 });
@@ -846,30 +846,25 @@ describe("Validation Registry - Stress Tests", () => {
 /**
  * Cost Analysis Notes
  *
- * Based on PAGE_SIZE=15 and FEEDBACK_PAGE_SIZE=15:
+ * Mainnet default: read_only_call_limit_read_count = 30
+ * (configurable per-node, also bypassed by /v3/contracts/fast-call-read endpoint)
+ *
+ * Based on PAGE_SIZE=14:
  *
  * 1. get-clients/get-responders/get-agent-validations/get-validator-requests:
- *    - Each paginated read = 2 map reads (counter + index lookup, index -> data)
- *    - PAGE_SIZE=15 = up to 30 reads per page
- *    - Mainnet limit: 30 reads (we're at the limit)
+ *    - Each page = 1 counter read + N index lookups (N <= 14)
+ *    - Worst case: 1 + 14 = 15 reads (within 30 limit)
  *
  * 2. read-all-feedback (global sequence):
- *    - Each feedback = 2 reads (global-index map, feedback map)
- *    - FEEDBACK_PAGE_SIZE=15 = 30 reads per page
- *    - Mainnet limit: 30 reads (we're at the limit)
+ *    - Each feedback = 2 reads (global-index map + feedback map)
+ *    - Worst case: 1 + 14*2 = 29 reads (within 30 limit)
  *
- * 3. get-summary:
- *    - Iterates over clients list * feedback indices
- *    - For each client: up to FEEDBACK_PAGE_SIZE reads
- *    - With 8 clients * 15 indices = 120 potential lookups
- *    - Uses fold to process, may hit limits with large client lists
- *    - Designed for small client lists or off-chain aggregation
+ * 3. get-summary (reputation + validation):
+ *    - O(1) via running totals: 1 map read
+ *    - Always within limit regardless of data volume
  *
- * 4. validation get-summary:
- *    - Iterates over response indices
- *    - Up to PAGE_SIZE responses per page
- *    - 15 responses = 30 reads (index + data)
- *    - Mainnet limit: 30 reads (we're at the limit)
- *
- * Run `npm run test:report` to see actual cost breakdowns.
+ * 4. get-response-count:
+ *    - With specific client + feedback index: 2 + 2*N responders
+ *    - Worst case: 2 + 2*14 = 30 reads (at the limit)
+ *    - Without filters: exceeds 30 reads (requires /v3 endpoint or node config)
  */

@@ -773,7 +773,7 @@ describe("validation-registry pagination", () => {
       );
     }
 
-    // act - get first page (15 validations)
+    // act - get first page (up to 14 validations)
     const page1Result = simnet.callReadOnlyFn(
       "validation-registry",
       "get-agent-validations",
@@ -784,8 +784,8 @@ describe("validation-registry pagination", () => {
     const validationsList1 = page1.value.validations.value;
     const cursor1 = page1.value.cursor;
 
-    // assert - first page has 15 validations and a cursor
-    expect(validationsList1.length).toBe(15);
+    // assert - first page has 14 validations and a cursor
+    expect(validationsList1.length).toBe(14);
     expect(cursor1.type).toBe('some');
 
     // act - get second page
@@ -798,7 +798,7 @@ describe("validation-registry pagination", () => {
     const page2 = page2Result.result as any;
 
     // assert - second page has remaining validations and no cursor
-    expect(page2.value.validations.value.length).toBe(5);
+    expect(page2.value.validations.value.length).toBe(6);
     expect(page2.value.cursor.type).toBe('none');
   });
 
@@ -829,7 +829,7 @@ describe("validation-registry pagination", () => {
       );
     }
 
-    // act - get first page (15 requests)
+    // act - get first page (up to 14 requests)
     const page1Result = simnet.callReadOnlyFn(
       "validation-registry",
       "get-validator-requests",
@@ -840,8 +840,8 @@ describe("validation-registry pagination", () => {
     const requestsList1 = page1.value.requests.value;
     const cursor1 = page1.value.cursor;
 
-    // assert - first page has 15 requests and a cursor
-    expect(requestsList1.length).toBe(15);
+    // assert - first page has 14 requests and a cursor
+    expect(requestsList1.length).toBe(14);
     expect(cursor1.type).toBe('some');
 
     // act - get second page
@@ -854,7 +854,7 @@ describe("validation-registry pagination", () => {
     const page2 = page2Result.result as any;
 
     // assert - second page has remaining requests and no cursor
-    expect(page2.value.requests.value.length).toBe(5);
+    expect(page2.value.requests.value.length).toBe(6);
     expect(page2.value.cursor.type).toBe('none');
   });
 });

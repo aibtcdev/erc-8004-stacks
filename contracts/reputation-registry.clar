@@ -27,16 +27,6 @@
 (define-constant ERR_EMPTY_CLIENT_LIST (err u3012))
 (define-constant VERSION u"2.0.0")
 
-;; Feedback iteration page size. Clarity requires static list iteration;
-;; read-only folds process FEEDBACK_PAGE_SIZE entries per cursor page.
-;; Pass opt-cursor to paginate: none starts at index 1, (some u15) at 16, etc.
-;; Set to 15 to stay within mainnet 30-read limit (15 items x 2 reads = 30).
-(define-constant FEEDBACK_PAGE_SIZE u15)
-(define-constant FEEDBACK_INDEX_LIST (list
-  u1 u2 u3 u4 u5 u6 u7 u8 u9 u10
-  u11 u12 u13 u14 u15
-))
-
 ;; Page size for list pagination (read-only functions)
 ;; Set to 15 to stay within mainnet 30-read limit (15 items x 2 reads = 30)
 (define-constant PAGE_SIZE u15)
@@ -54,7 +44,7 @@
 ;; data maps
 (define-map feedback
   {agent-id: uint, client: principal, index: uint}
-  {value: int, value-decimals: uint, tag1: (string-utf8 64), tag2: (string-utf8 64), is-revoked: bool}
+  {value: int, value-decimals: uint, wad-value: int, tag1: (string-utf8 64), tag2: (string-utf8 64), is-revoked: bool}
 )
 
 (define-map last-index {agent-id: uint, client: principal} uint)
@@ -76,6 +66,9 @@
 ;; Global feedback sequence for cross-client pagination
 (define-map last-global-index {agent-id: uint} uint)
 (define-map global-feedback-index {agent-id: uint, global-index: uint} {client: principal, client-index: uint})
+
+;; Running totals for O(1) unfiltered summary
+(define-map agent-summary {agent-id: uint} {count: uint, wad-sum: int})
 ;;
 
 ;; public functions
@@ -126,10 +119,20 @@
     (asserts! (is-ok auth-check) ERR_AGENT_NOT_FOUND)
     ;; Verify caller is NOT authorized (prevent self-feedback)
     (asserts! (not (unwrap-panic auth-check)) ERR_SELF_FEEDBACK)
-    ;; Store feedback
-    (map-set feedback
-      {agent-id: agent-id, client: caller, index: next-index}
-      {value: value, value-decimals: value-decimals, tag1: tag1, tag2: tag2, is-revoked: false}
+    ;; Compute and store WAD value for revocation
+    (let ((wad-val (normalize-to-wad value value-decimals)))
+      (map-set feedback
+        {agent-id: agent-id, client: caller, index: next-index}
+        {value: value, value-decimals: value-decimals, wad-value: wad-val, tag1: tag1, tag2: tag2, is-revoked: false}
+      )
+      ;; Update running totals
+      (let (
+        (current-summary (default-to {count: u0, wad-sum: 0} (map-get? agent-summary {agent-id: agent-id})))
+      )
+        (map-set agent-summary {agent-id: agent-id}
+          {count: (+ (get count current-summary) u1), wad-sum: (+ (get wad-sum current-summary) wad-val)}
+        )
+      )
     )
     ;; Update last index
     (map-set last-index {agent-id: agent-id, client: caller} next-index)
@@ -195,10 +198,20 @@
     (asserts! (not (unwrap-panic auth-check)) ERR_SELF_FEEDBACK)
     ;; Verify caller has on-chain approval with sufficient limit
     (asserts! (>= approved-limit next-index) ERR_INDEX_LIMIT_EXCEEDED)
-    ;; Store feedback
-    (map-set feedback
-      {agent-id: agent-id, client: caller, index: next-index}
-      {value: value, value-decimals: value-decimals, tag1: tag1, tag2: tag2, is-revoked: false}
+    ;; Compute and store WAD value for revocation
+    (let ((wad-val (normalize-to-wad value value-decimals)))
+      (map-set feedback
+        {agent-id: agent-id, client: caller, index: next-index}
+        {value: value, value-decimals: value-decimals, wad-value: wad-val, tag1: tag1, tag2: tag2, is-revoked: false}
+      )
+      ;; Update running totals
+      (let (
+        (current-summary (default-to {count: u0, wad-sum: 0} (map-get? agent-summary {agent-id: agent-id})))
+      )
+        (map-set agent-summary {agent-id: agent-id}
+          {count: (+ (get count current-summary) u1), wad-sum: (+ (get wad-sum current-summary) wad-val)}
+        )
+      )
     )
     ;; Update last index
     (map-set last-index {agent-id: agent-id, client: caller} next-index)
@@ -273,10 +286,20 @@
     (asserts! (is-authorized agent-id signer) ERR_NOT_AUTHORIZED)
     ;; Verify SIP-018 signature
     (asserts! (verify-sip018-auth agent-id caller index-limit expiry signer signature) ERR_SIGNATURE_INVALID)
-    ;; Store feedback
-    (map-set feedback
-      {agent-id: agent-id, client: caller, index: next-index}
-      {value: value, value-decimals: value-decimals, tag1: tag1, tag2: tag2, is-revoked: false}
+    ;; Compute and store WAD value for revocation
+    (let ((wad-val (normalize-to-wad value value-decimals)))
+      (map-set feedback
+        {agent-id: agent-id, client: caller, index: next-index}
+        {value: value, value-decimals: value-decimals, wad-value: wad-val, tag1: tag1, tag2: tag2, is-revoked: false}
+      )
+      ;; Update running totals
+      (let (
+        (current-summary (default-to {count: u0, wad-sum: 0} (map-get? agent-summary {agent-id: agent-id})))
+      )
+        (map-set agent-summary {agent-id: agent-id}
+          {count: (+ (get count current-summary) u1), wad-sum: (+ (get wad-sum current-summary) wad-val)}
+        )
+      )
     )
     ;; Update last index
     (map-set last-index {agent-id: agent-id, client: caller} next-index)
@@ -324,18 +347,29 @@
     (asserts! (> index u0) ERR_INVALID_INDEX)
     ;; Verify not already revoked
     (asserts! (not (get is-revoked fb)) ERR_ALREADY_REVOKED)
+    ;; Update running totals (decrement count, subtract wad-value)
+    (let (
+      (current-summary (default-to {count: u0, wad-sum: 0} (map-get? agent-summary {agent-id: agent-id})))
+      (wad-val (get wad-value fb))
+    )
+      (map-set agent-summary {agent-id: agent-id}
+        {count: (- (get count current-summary) u1), wad-sum: (- (get wad-sum current-summary) wad-val)}
+      )
+    )
     ;; Mark as revoked
     (map-set feedback
       {agent-id: agent-id, client: caller, index: index}
       (merge fb {is-revoked: true})
     )
-    ;; Emit event
+    ;; Emit event (enriched with value/decimals for indexer)
     (print {
       notification: "reputation-registry/FeedbackRevoked",
       payload: {
         agent-id: agent-id,
         client: caller,
-        index: index
+        index: index,
+        value: (get value fb),
+        value-decimals: (get value-decimals fb)
       }
     })
     (ok true)
@@ -398,57 +432,20 @@
   (map-get? feedback {agent-id: agent-id, client: client, index: index})
 )
 
-(define-read-only (get-summary
-  (agent-id uint)
-  (client-addresses (list 200 principal))
-  (opt-tag1 (optional (string-utf8 64)))
-  (opt-tag2 (optional (string-utf8 64)))
-  (opt-cursor (optional uint))
-)
+(define-read-only (get-summary (agent-id uint))
   (let (
-    (list-len (len client-addresses))
-    (cursor-offset (default-to u0 opt-cursor))
+    (summary (default-to {count: u0, wad-sum: 0} (map-get? agent-summary {agent-id: agent-id})))
   )
-    (if (is-eq list-len u0)
-      {count: u0, summary-value: 0, summary-value-decimals: u0, cursor: none}
+    (if (is-eq (get count summary) u0)
+      {count: u0, summary-value: 0, summary-value-decimals: u18}
       (let (
-        (init-freq (list u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0))
-        (result (fold summary-fold
-          client-addresses
-          {
-            agent-id: agent-id,
-            opt-tag1: opt-tag1,
-            opt-tag2: opt-tag2,
-            count: u0,
-            wad-sum: 0,
-            decimal-freq: init-freq,
-            client: tx-sender,
-            last-idx: u0,
-            cursor-offset: cursor-offset,
-            has-more: false
-          }
-        ))
-        (count (get count result))
-        (wad-sum (get wad-sum result))
-        (decimal-freq (get decimal-freq result))
-        (has-more (get has-more result))
-        (next-cursor (if has-more (some (+ cursor-offset FEEDBACK_PAGE_SIZE)) none))
+        (avg-wad (/ (get wad-sum summary) (to-int (get count summary))))
       )
-        (if (is-eq count u0)
-          {count: u0, summary-value: 0, summary-value-decimals: u0, cursor: next-cursor}
-          (let (
-            (avg-wad (/ wad-sum (to-int count)))
-            (mode-decimals (find-mode-decimals decimal-freq))
-            (summary-value (scale-from-wad avg-wad mode-decimals))
-          )
-            {
-              count: count,
-              summary-value: summary-value,
-              summary-value-decimals: mode-decimals,
-              cursor: next-cursor
-            }
-          )
-        )
+        {
+          count: (get count summary),
+          summary-value: avg-wad,
+          summary-value-decimals: u18
+        }
       )
     )
   )
@@ -499,7 +496,7 @@
       client-val
         (let (
           (last-idx (get-last-index agent-id client-val))
-          (page-end (+ cursor-offset FEEDBACK_PAGE_SIZE))
+          (page-end (+ cursor-offset PAGE_SIZE))
           (client-has-more (> last-idx page-end))
         )
           (match opt-feedback-index
@@ -508,7 +505,7 @@
               (if (or (is-eq idx-val u0) (> idx-val last-idx))
                 ;; Index 0 or invalid: count all feedback for this client (paginated)
                 {total: (get total (fold count-all-feedback-fold
-                  FEEDBACK_INDEX_LIST
+                  PAGE_INDEX_LIST
                   {agent-id: agent-id, client: client-val, last-idx: last-idx, responders: opt-responders, total: u0, current-idx: u0, cursor-offset: cursor-offset})),
                  cursor: (if client-has-more (some page-end) none)}
                 ;; Specific index: no pagination needed
@@ -521,7 +518,7 @@
               )
             ;; No index: count all feedback for this client (paginated)
             {total: (get total (fold count-all-feedback-fold
-              FEEDBACK_INDEX_LIST
+              PAGE_INDEX_LIST
               {agent-id: agent-id, client: client-val, last-idx: last-idx, responders: opt-responders, total: u0, current-idx: u0, cursor-offset: cursor-offset})),
              cursor: (if client-has-more (some page-end) none)}
           )
@@ -533,7 +530,7 @@
           client-list
           {agent-id: agent-id, opt-feedback-index: opt-feedback-index, opt-responders: opt-responders, total: u0, cursor-offset: cursor-offset, has-more: false}))
       )
-        {total: (get total result), cursor: (if (get has-more result) (some (+ cursor-offset FEEDBACK_PAGE_SIZE)) none)}
+        {total: (get total result), cursor: (if (get has-more result) (some (+ cursor-offset PAGE_SIZE)) none)}
       )
     )
   )
@@ -553,10 +550,10 @@
   (let (
     (last-global (default-to u0 (map-get? last-global-index {agent-id: agent-id})))
     (cursor-offset (default-to u0 opt-cursor))
-    (page-end (+ cursor-offset FEEDBACK_PAGE_SIZE))
+    (page-end (+ cursor-offset PAGE_SIZE))
     (has-more (> last-global page-end))
     (result (fold read-all-global-fold
-      FEEDBACK_INDEX_LIST
+      PAGE_INDEX_LIST
       {
         agent-id: agent-id,
         tag1: opt-tag1,
@@ -622,49 +619,6 @@
   (if (>= decimals u18)
     value
     (* value (to-int (pow u10 (- u18 decimals))))
-  )
-)
-
-(define-private (scale-from-wad (wad-value int) (target-decimals uint))
-  ;; Scale from 18 decimals to target: wad-value / 10^(18 - target-decimals)
-  (if (>= target-decimals u18)
-    wad-value
-    (/ wad-value (to-int (pow u10 (- u18 target-decimals))))
-  )
-)
-
-(define-private (find-mode-decimals (freq-list (list 19 uint)))
-  ;; Find index with maximum count (most frequent decimals)
-  (get mode-idx (fold find-mode-fold
-    freq-list
-    {mode-idx: u0, mode-count: u0, current-idx: u0}
-  ))
-)
-
-(define-private (find-mode-fold
-  (count uint)
-  (acc {mode-idx: uint, mode-count: uint, current-idx: uint})
-)
-  (let (
-    (new-idx (+ (get current-idx acc) u1))
-  )
-    (if (> count (get mode-count acc))
-      {mode-idx: (get current-idx acc), mode-count: count, current-idx: new-idx}
-      (merge acc {current-idx: new-idx})
-    )
-  )
-)
-
-(define-private (increment-freq (freq-list (list 19 uint)) (decimals uint))
-  ;; Increment count at index=decimals in frequency list
-  (if (> decimals u18)
-    freq-list
-    (let (
-      (current-count (default-to u0 (element-at? freq-list decimals)))
-      (new-count (+ current-count u1))
-    )
-      (default-to freq-list (replace-at? freq-list decimals new-count))
-    )
   )
 )
 
@@ -738,13 +692,13 @@
     tag1: (optional (string-utf8 64)),
     tag2: (optional (string-utf8 64)),
     include-revoked: bool,
-    items: (list 50 {client: principal, index: uint, value: int, value-decimals: uint, tag1: (string-utf8 64), tag2: (string-utf8 64), is-revoked: bool}),
+    items: (list 15 {client: principal, index: uint, value: int, value-decimals: uint, wad-value: int, tag1: (string-utf8 64), tag2: (string-utf8 64), is-revoked: bool}),
     cursor-offset: uint,
     last-global: uint
   })
 )
   (let ((global-idx (+ idx (get cursor-offset acc))))
-    (if (or (> global-idx (get last-global acc)) (>= (len (get items acc)) u50))
+    (if (or (> global-idx (get last-global acc)) (>= (len (get items acc)) u15))
       acc
       (let (
         (pointer-opt (map-get? global-feedback-index {agent-id: (get agent-id acc), global-index: global-idx}))
@@ -773,10 +727,11 @@
                     index: (get client-index pointer),
                     value: (get value fb),
                     value-decimals: (get value-decimals fb),
+                    wad-value: (get wad-value fb),
                     tag1: (get tag1 fb),
                     tag2: (get tag2 fb),
                     is-revoked: (get is-revoked fb)
-                  }) u50)
+                  }) u15)
                     new-items (merge acc {items: new-items})
                     acc
                   )
@@ -784,67 +739,6 @@
                 )
               )
               acc
-            )
-          )
-          acc
-        )
-      )
-    )
-  )
-)
-
-(define-private (summary-fold
-  (client principal)
-  (acc {agent-id: uint, opt-tag1: (optional (string-utf8 64)), opt-tag2: (optional (string-utf8 64)), count: uint, wad-sum: int, decimal-freq: (list 19 uint), client: principal, last-idx: uint, cursor-offset: uint, has-more: bool})
-)
-  (let (
-    (agent-id (get agent-id acc))
-    (last-idx (default-to u0 (map-get? last-index {agent-id: agent-id, client: client})))
-    (page-end (+ (get cursor-offset acc) FEEDBACK_PAGE_SIZE))
-  )
-    (fold summary-index-fold
-      FEEDBACK_INDEX_LIST
-      (merge acc {client: client, last-idx: last-idx, has-more: (or (get has-more acc) (> last-idx page-end))})
-    )
-  )
-)
-
-(define-private (summary-index-fold
-  (idx uint)
-  (acc {agent-id: uint, opt-tag1: (optional (string-utf8 64)), opt-tag2: (optional (string-utf8 64)), count: uint, wad-sum: int, decimal-freq: (list 19 uint), client: principal, last-idx: uint, cursor-offset: uint, has-more: bool})
-)
-  (let ((actual-idx (+ idx (get cursor-offset acc))))
-    (if (> actual-idx (get last-idx acc))
-      acc
-      (let (
-        (fb-opt (map-get? feedback {agent-id: (get agent-id acc), client: (get client acc), index: actual-idx}))
-      )
-        (match fb-opt fb
-          (if (get is-revoked fb)
-            acc
-            (let (
-              (matches-tag1 (match (get opt-tag1 acc)
-                filter-tag1 (is-eq filter-tag1 (get tag1 fb))
-                true
-              ))
-              (matches-tag2 (match (get opt-tag2 acc)
-                filter-tag2 (is-eq filter-tag2 (get tag2 fb))
-                true
-              ))
-            )
-              (if (and matches-tag1 matches-tag2)
-                (let (
-                  (normalized-value (normalize-to-wad (get value fb) (get value-decimals fb)))
-                  (new-freq (increment-freq (get decimal-freq acc) (get value-decimals fb)))
-                )
-                  (merge acc {
-                    count: (+ (get count acc) u1),
-                    wad-sum: (+ (get wad-sum acc) normalized-value),
-                    decimal-freq: new-freq
-                  })
-                )
-                acc
-              )
             )
           )
           acc
@@ -863,7 +757,7 @@
   (let (
     (agent-id (get agent-id acc))
     (last-idx (get-last-index agent-id client))
-    (page-end (+ (get cursor-offset acc) FEEDBACK_PAGE_SIZE))
+    (page-end (+ (get cursor-offset acc) PAGE_SIZE))
     (client-has-more (> last-idx page-end))
   )
     (match (get opt-feedback-index acc)
@@ -873,7 +767,7 @@
           ;; Index 0 or invalid: count all feedback for this client (paginated)
           (merge acc {total: (+ (get total acc)
             (get total (fold count-all-feedback-fold
-              FEEDBACK_INDEX_LIST
+              PAGE_INDEX_LIST
               {agent-id: agent-id, client: client, last-idx: last-idx, responders: (get opt-responders acc), total: u0, current-idx: u0, cursor-offset: (get cursor-offset acc)}))),
             has-more: (or (get has-more acc) client-has-more)})
           ;; Specific index: count for that feedback (no pagination)
@@ -888,7 +782,7 @@
       ;; No index: count all feedback for this client (paginated)
       (merge acc {total: (+ (get total acc)
         (get total (fold count-all-feedback-fold
-          FEEDBACK_INDEX_LIST
+          PAGE_INDEX_LIST
           {agent-id: agent-id, client: client, last-idx: last-idx, responders: (get opt-responders acc), total: u0, current-idx: u0, cursor-offset: (get cursor-offset acc)}))),
         has-more: (or (get has-more acc) client-has-more)})
     )

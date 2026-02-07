@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ERC-8004 Stacks Contracts - Clarity smart contracts implementing the ERC-8004 agent identity/reputation/validation protocol for Stacks blockchain. Mirrors the [Solidity reference implementation](https://github.com/erc8004-org/erc8004-contracts).
+ERC-8004 Stacks Contracts - Clarity smart contracts implementing the ERC-8004 agent identity/reputation/validation protocol for Stacks blockchain. Mirrors the [Solidity reference implementation](https://github.com/erc-8004/erc-8004-contracts).
 
 **Current Status**: All three registries ✅ complete with 149 tests passing. v2.0.0 spec-compliant. Deployed to testnet.
 
@@ -89,7 +89,7 @@ Three contracts implementing ERC-8004 spec as chain singletons:
 **Events** follow SIP-019 pattern:
 ```clarity
 (print {
-  notification: "identity-registry/AgentRegistered",
+  notification: "identity-registry/Registered",
   payload: { agent-id: agent-id, owner: tx-sender }
 })
 ```
@@ -236,10 +236,7 @@ Three trait contracts define interfaces for cross-contract conformance:
 
 **Hybrid approach**: Clarity traits require `(response ...)` returns, so raw-return read-only functions (returning `optional`, `uint`, tuples) are documented but not trait-enforced. This is a Clarity language constraint, not a design choice.
 
-## Reference Documentation
+## Reference
 
-- **GitHub Pages**: https://aibtcdev.github.io/erc-8004-stacks
-- Implementation plan: `docs/STACKS_ERC8004_IMPLEMENTATION.md`
-- Clarity language reference: `docs/CLARITY_REFERENCE.md`
-- Solidity reference: `docs/erc8004-contracts-*.md`
-- ERC-8004 spec: `docs/erc8004-proposal-text.md`
+- ERC-8004 spec: [erc-8004/erc-8004-contracts](https://github.com/erc-8004/erc-8004-contracts)
+- Stacks implementation details: see `AGENTS.md`

@@ -1,78 +1,45 @@
 # ERC-8004 Stacks Contracts
 
-Minimal, compilable **ERC-8004** (Agent Identity/Reputation/Validation) contracts for **Stacks** (Clarity).
+Clarity smart contracts implementing the [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) agent identity, reputation, and validation protocol for Stacks blockchain (v2.0.0).
 
-- **IdentityRegistry**: ERC-721-like agent registration (sequential IDs, URI, metadata).
-- **ReputationRegistry**: Client feedback (score/tags/revoke/response).
-- **ValidationRegistry**: Validator requests/responses.
-
-**Status**: All registries ✅ complete and deployed to testnet.
-
-**Multichain**: `stacks:<chainId>:<registry>:<agentId>` (CAIP-2 compliant).
-
-Mirrors [erc8004-contracts](https://github.com/erc8004-org/erc8004-contracts) (Solidity) and [s8004 contracts](https://github.com/Woody4618/s8004) (Solana).
+Cross-chain standard — same protocol on [Ethereum](https://github.com/erc-8004/erc-8004-contracts) (Solidity), [Solana](https://github.com/Woody4618/s8004) (Rust), and Stacks (Clarity).
 
 ## Contracts
 
-| Name                | Path                                 | Status  | Summary                                       |
-| ------------------- | ------------------------------------ | ------- | --------------------------------------------- |
-| Identity Registry   | `contracts/identity-registry.clar`   | ✅ Done | Agent registration (ERC-721 equiv., metadata) |
-| Reputation Registry | `contracts/reputation-registry.clar` | ✅ Done | Feedback (score/tags/revoke/response), SIP-018 signatures |
-| Validation Registry | `contracts/validation-registry.clar` | ✅ Done | Validator requests/responses                  |
+| Contract | Purpose |
+|----------|---------|
+| `identity-registry-v2` | Agent registration as SIP-009 NFT, metadata, agent wallet (dual-path auth) |
+| `reputation-registry-v2` | Client feedback with signed values, permissionless + self-feedback guard |
+| `validation-registry-v2` | Third-party validation requests with progressive responses |
 
-**Testnet Deployment** ([View on Explorer](https://explorer.hiro.so/address/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18?chain=testnet)):
-
-| Contract            | Address                                                     | Explorer |
-| ------------------- | ----------------------------------------------------------- | -------- |
-| Identity Registry   | `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.identity-registry`   | [View](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.identity-registry?chain=testnet) |
-| Reputation Registry | `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry` | [View](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry?chain=testnet) |
-| Validation Registry | `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry` | [View](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry?chain=testnet) |
-
-## Contract Specifications & Plan
-
-- [SPEC.md](SPEC.md) — One-pager overview of ERC-8004 on Stacks
-- [Implementation Plan](docs/STACKS_ERC8004_IMPLEMENTATION.md)
-- [Clarity Reference](docs/CLARITY_REFERENCE.md)
-- [Solidity Refs](docs/erc8004-contracts-*)
-- [Solana Refs](docs/solana-s8004-*)
+Three trait contracts (`contracts/traits/*-v2.clar`) define interfaces for cross-contract conformance.
 
 ## Quickstart
 
-### Install & Test
-
 ```bash
-npm install
-npm test          # Vitest + Clarinet (identity-registry full coverage)
+npm install        # Install dependencies
+npm test           # Run 149 tests (Vitest + Clarinet SDK)
+clarinet check     # Type-check Clarity contracts
 ```
 
-### Local Dev (Clarinet)
+## Multichain Identity
 
-```bash
-clarinet integrate # Dev shell
-clarinet console   # REPL
+Agents get globally unique IDs following [CAIP-2](https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-2.md):
+
+```
+stacks:<chainId>:<registry>:<agentId>
 ```
 
-### Deploy Testnet
+- Mainnet: `stacks:1`
+- Testnet: `stacks:2147483648`
 
-1. `cp settings/Devnet.toml settings/Testnet.toml`
-2. Update `Testnet.toml` w/ deployer keys.
-3. `clarinet deploy --network testnet`
-4. Update addresses above.
+## Documentation
 
-**Tests**:
+- `CLAUDE.md` — Development guide, conventions, and architecture
+- `AGENTS.md` — LLM-friendly contract API reference and integration guide
 
-- `tests/identity-registry.test.ts` ✅ (18 tests)
-- `tests/reputation-registry.test.ts` ✅ (23 tests)
-- `tests/validation-registry.test.ts` ✅ (18 tests)
-- `tests/erc8004-integration.test.ts` ✅ (14 tests)
+## Links
 
-## Resources
-
-- **[ERC-8004 Spec](https://eips.ethereum.org/EIPS/eip-8004)**: Agent standards.
-- **[Clarity Reference](https://docs.stacks.co/reference/clarity)**: Language.
-- **[Clarinet](https://www.hiro.so/clarinet)**: Dev tools.
-- **[Solidity Impl](https://github.com/erc8004-org/erc8004-contracts)**: Ethereum ref.
-- **[Solana Impl](docs/solana-s8004-contract.rs)**: Rust ref.
-- **[Plan](docs/STACKS_ERC8004_IMPLEMENTATION.md)**: Roadmap.
-
-**Next**: SIP submission → mainnet deploy.
+- [ERC-8004 Spec](https://eips.ethereum.org/EIPS/eip-8004)
+- [Solidity Reference](https://github.com/erc-8004/erc-8004-contracts)
+- [AIBTC](https://github.com/aibtcdev)

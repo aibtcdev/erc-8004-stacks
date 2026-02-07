@@ -32,7 +32,7 @@
 ;; getValidatorRequests(validator)      | get-validator-requests(opt-cursor) | Superset: cursor pagination
 
 ;; traits
-(impl-trait .validation-registry-trait.validation-registry-trait)
+(impl-trait .validation-registry-trait-v2.validation-registry-trait)
 ;;
 
 ;; token definitions
@@ -276,12 +276,12 @@
 
 (define-private (is-authorized (agent-id uint) (caller principal))
   (let (
-    (owner-opt (contract-call? .identity-registry owner-of agent-id))
+    (owner-opt (contract-call? .identity-registry-v2 owner-of agent-id))
   )
     (match owner-opt owner
       (or
         (is-eq caller owner)
-        (contract-call? .identity-registry is-approved-for-all agent-id caller)
+        (contract-call? .identity-registry-v2 is-approved-for-all agent-id caller)
       )
       false
     )

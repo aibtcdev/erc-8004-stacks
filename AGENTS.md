@@ -12,6 +12,27 @@ Three singleton registry contracts, deployed once per chain:
 - **Reputation Registry** — Client feedback with signed int values, WAD-normalized running totals
 - **Validation Registry** — Third-party validation requests with progressive responses
 
+### Deployed Contracts
+
+**Mainnet** — deployer: `SP1NMR7MY0TJ1QA7WQBZ6504KC79PZNTRQH4YGFJD`
+
+| Contract ID | Type |
+|-------------|------|
+| `SP1NMR7MY0TJ1QA7WQBZ6504KC79PZNTRQH4YGFJD.identity-registry-v2` | Registry |
+| `SP1NMR7MY0TJ1QA7WQBZ6504KC79PZNTRQH4YGFJD.reputation-registry-v2` | Registry |
+| `SP1NMR7MY0TJ1QA7WQBZ6504KC79PZNTRQH4YGFJD.validation-registry-v2` | Registry |
+| `SP1NMR7MY0TJ1QA7WQBZ6504KC79PZNTRQH4YGFJD.identity-registry-trait-v2` | Trait |
+| `SP1NMR7MY0TJ1QA7WQBZ6504KC79PZNTRQH4YGFJD.reputation-registry-trait-v2` | Trait |
+| `SP1NMR7MY0TJ1QA7WQBZ6504KC79PZNTRQH4YGFJD.validation-registry-trait-v2` | Trait |
+
+**Testnet** — deployer: `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18`
+
+| Contract ID | Type |
+|-------------|------|
+| `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.identity-registry-v2` | Registry |
+| `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry-v2` | Registry |
+| `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry-v2` | Registry |
+
 ## Identity Registry (`identity-registry-v2`)
 
 Agents are SIP-009 NFTs. Each agent gets a sequential uint ID, optional URI, key-value metadata, and an agent wallet (principal). Supports owner, operator (approval-for-all), and SIP-018 signature authorization.

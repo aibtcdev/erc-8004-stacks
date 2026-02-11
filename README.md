@@ -24,6 +24,9 @@ Cross-chain standard — same protocol on [Ethereum](https://github.com/erc-8004
 | `identity-registry-v2` | [view](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.identity-registry-v2?chain=testnet) |
 | `reputation-registry-v2` | [view](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry-v2?chain=testnet) |
 | `validation-registry-v2` | [view](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry-v2?chain=testnet) |
+| `identity-registry-trait-v2` | [view](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.identity-registry-trait-v2?chain=testnet) |
+| `reputation-registry-trait-v2` | [view](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry-trait-v2?chain=testnet) |
+| `validation-registry-trait-v2` | [view](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry-trait-v2?chain=testnet) |
 
 ## Contracts
 

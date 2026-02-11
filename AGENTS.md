@@ -32,6 +32,9 @@ Three singleton registry contracts, deployed once per chain:
 | `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.identity-registry-v2` | Registry |
 | `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry-v2` | Registry |
 | `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry-v2` | Registry |
+| `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.identity-registry-trait-v2` | Trait |
+| `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry-trait-v2` | Trait |
+| `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry-trait-v2` | Trait |
 
 ## Identity Registry (`identity-registry-v2`)
 

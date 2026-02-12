@@ -4,6 +4,30 @@ Clarity smart contracts implementing the [ERC-8004](https://eips.ethereum.org/EI
 
 Cross-chain standard — same protocol on [Ethereum](https://github.com/erc-8004/erc-8004-contracts) (Solidity), [Solana](https://github.com/Woody4618/s8004) (Rust), and Stacks (Clarity).
 
+## Deployed Contracts
+
+### Mainnet (`SP1NMR7MY0TJ1QA7WQBZ6504KC79PZNTRQH4YGFJD`)
+
+| Contract | Explorer |
+|----------|----------|
+| `identity-registry-v2` | [view](https://explorer.hiro.so/txid/SP1NMR7MY0TJ1QA7WQBZ6504KC79PZNTRQH4YGFJD.identity-registry-v2?chain=mainnet) |
+| `reputation-registry-v2` | [view](https://explorer.hiro.so/txid/SP1NMR7MY0TJ1QA7WQBZ6504KC79PZNTRQH4YGFJD.reputation-registry-v2?chain=mainnet) |
+| `validation-registry-v2` | [view](https://explorer.hiro.so/txid/SP1NMR7MY0TJ1QA7WQBZ6504KC79PZNTRQH4YGFJD.validation-registry-v2?chain=mainnet) |
+| `identity-registry-trait-v2` | [view](https://explorer.hiro.so/txid/SP1NMR7MY0TJ1QA7WQBZ6504KC79PZNTRQH4YGFJD.identity-registry-trait-v2?chain=mainnet) |
+| `reputation-registry-trait-v2` | [view](https://explorer.hiro.so/txid/SP1NMR7MY0TJ1QA7WQBZ6504KC79PZNTRQH4YGFJD.reputation-registry-trait-v2?chain=mainnet) |
+| `validation-registry-trait-v2` | [view](https://explorer.hiro.so/txid/SP1NMR7MY0TJ1QA7WQBZ6504KC79PZNTRQH4YGFJD.validation-registry-trait-v2?chain=mainnet) |
+
+### Testnet (`ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18`)
+
+| Contract | Explorer |
+|----------|----------|
+| `identity-registry-v2` | [view](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.identity-registry-v2?chain=testnet) |
+| `reputation-registry-v2` | [view](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry-v2?chain=testnet) |
+| `validation-registry-v2` | [view](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry-v2?chain=testnet) |
+| `identity-registry-trait-v2` | [view](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.identity-registry-trait-v2?chain=testnet) |
+| `reputation-registry-trait-v2` | [view](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry-trait-v2?chain=testnet) |
+| `validation-registry-trait-v2` | [view](https://explorer.hiro.so/txid/ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry-trait-v2?chain=testnet) |
+
 ## Contracts
 
 | Contract | Purpose |

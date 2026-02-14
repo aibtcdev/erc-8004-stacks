@@ -73,7 +73,7 @@
 (define-map uris {agent-id: uint} (string-utf8 512))
 (define-map metadata {agent-id: uint, key: (string-utf8 128)} (buff 512))
 (define-map approvals {agent-id: uint, operator: principal} bool)
-(define-map agent-wallets {agent-id: uint} principal)
+(define-map agent-wallets uint principal)
 (define-map agent-id-by-owner principal uint)
 ;;
 
@@ -101,7 +101,7 @@
     (try! (nft-mint? agent-identity agent-id owner))
     (asserts! (map-insert uris {agent-id: agent-id} token-uri) ERR_AGENT_ALREADY_EXISTS)
     ;; Auto-set agent-wallet to owner
-    (map-set agent-wallets {agent-id: agent-id} owner)
+    (map-set agent-wallets agent-id owner)
     ;; Reverse lookup: owner -> agent-id (last-write-wins for multiple registrations)
     (map-set agent-id-by-owner owner agent-id)
     (let (
@@ -114,7 +114,7 @@
       true
     )
     (print {
-      notification: "identity-registry/Registered",
+      notification: "Registered",
       payload: {
         agent-id: agent-id,
         owner: owner,
@@ -123,7 +123,7 @@
       }
     })
     (print {
-      notification: "identity-registry/MetadataSet",
+      notification: "MetadataSet",
       payload: {
         agent-id: agent-id,
         key: RESERVED_KEY_AGENT_WALLET,
@@ -139,7 +139,7 @@
     (asserts! (is-authorized agent-id tx-sender) ERR_NOT_AUTHORIZED)
     (map-set uris {agent-id: agent-id} new-uri)
     (print {
-      notification: "identity-registry/UriUpdated",
+      notification: "UriUpdated",
       payload: {
         agent-id: agent-id,
         new-uri: new-uri,
@@ -156,7 +156,7 @@
     (asserts! (not (is-eq key RESERVED_KEY_AGENT_WALLET)) ERR_RESERVED_KEY)
     (map-set metadata {agent-id: agent-id, key: key} value)
     (print {
-      notification: "identity-registry/MetadataSet",
+      notification: "MetadataSet",
       payload: {
         agent-id: agent-id,
         key: key,
@@ -174,7 +174,7 @@
     (asserts! (is-eq tx-sender owner) ERR_NOT_AUTHORIZED)
     (map-set approvals {agent-id: agent-id, operator: operator} approved)
     (print {
-      notification: "identity-registry/ApprovalForAll",
+      notification: "ApprovalForAll",
       payload: {
         agent-id: agent-id,
         operator: operator,
@@ -187,7 +187,7 @@
 
 (define-public (set-agent-wallet-direct (agent-id uint))
   (let (
-    (current-wallet-opt (map-get? agent-wallets {agent-id: agent-id}))
+    (current-wallet-opt (map-get? agent-wallets agent-id))
   )
     ;; Verify agent exists
     (unwrap! (nft-get-owner? agent-identity agent-id) ERR_AGENT_NOT_FOUND)
@@ -199,9 +199,9 @@
       true
     )
     ;; Set new wallet
-    (map-set agent-wallets {agent-id: agent-id} tx-sender)
+    (map-set agent-wallets agent-id tx-sender)
     (print {
-      notification: "identity-registry/MetadataSet",
+      notification: "MetadataSet",
       payload: {
         agent-id: agent-id,
         key: RESERVED_KEY_AGENT_WALLET,
@@ -247,9 +247,9 @@
       ;; Verify signature is from new-wallet
       (asserts! (is-eq recovered-principal new-wallet) ERR_INVALID_SIGNATURE)
       ;; Set new wallet
-      (map-set agent-wallets {agent-id: agent-id} new-wallet)
+      (map-set agent-wallets agent-id new-wallet)
       (print {
-        notification: "identity-registry/MetadataSet",
+        notification: "MetadataSet",
         payload: {
           agent-id: agent-id,
           key: RESERVED_KEY_AGENT_WALLET,
@@ -262,13 +262,11 @@
 )
 
 (define-public (unset-agent-wallet (agent-id uint))
-  (let (
-    (owner (unwrap! (nft-get-owner? agent-identity agent-id) ERR_AGENT_NOT_FOUND))
-  )
+  (begin
     (asserts! (is-authorized agent-id tx-sender) ERR_NOT_AUTHORIZED)
-    (map-delete agent-wallets {agent-id: agent-id})
+    (map-delete agent-wallets agent-id)
     (print {
-      notification: "identity-registry/MetadataSet",
+      notification: "MetadataSet",
       payload: {
         agent-id: agent-id,
         key: RESERVED_KEY_AGENT_WALLET,
@@ -285,12 +283,12 @@
     (let ((actual-owner (unwrap! (nft-get-owner? agent-identity token-id) ERR_AGENT_NOT_FOUND)))
       (asserts! (is-eq sender actual-owner) ERR_NOT_AUTHORIZED)
       ;; Clear agent wallet before transfer
-      (map-delete agent-wallets {agent-id: token-id})
+      (map-delete agent-wallets token-id)
       ;; Update reverse lookup: remove sender, set recipient
       (map-delete agent-id-by-owner sender)
       (map-set agent-id-by-owner recipient token-id)
       (print {
-        notification: "identity-registry/MetadataSet",
+        notification: "MetadataSet",
         payload: {
           agent-id: token-id,
           key: RESERVED_KEY_AGENT_WALLET,
@@ -299,7 +297,7 @@
       })
       (try! (nft-transfer? agent-identity token-id sender recipient))
       (print {
-        notification: "identity-registry/Transfer",
+        notification: "Transfer",
         payload: {
           token-id: token-id,
           sender: sender,
@@ -340,7 +338,7 @@
 )
 
 (define-read-only (get-agent-wallet (agent-id uint))
-  (map-get? agent-wallets {agent-id: agent-id})
+  (map-get? agent-wallets agent-id)
 )
 
 (define-read-only (is-authorized-or-owner (spender principal) (agent-id uint))
@@ -393,7 +391,7 @@
         )
           (map-set metadata {agent-id: aid, key: k} v)
           (print {
-            notification: "identity-registry/MetadataSet",
+            notification: "MetadataSet",
             payload: {
               agent-id: aid,
               key: k,

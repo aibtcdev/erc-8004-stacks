@@ -23,6 +23,16 @@ path = 'contracts/validation-registry-v2.clar'
 clarity_version = 4
 epoch = 'latest'
 
+[contracts.identity-registry-v3]
+path = 'contracts/identity-registry-v3.clar'
+clarity_version = 4
+epoch = 'latest'
+
+[contracts.identity-registry-trait-v3]
+path = 'contracts/traits/identity-registry-trait-v3.clar'
+clarity_version = 4
+epoch = 'latest'
+
 [contracts.identity-registry-trait-v2]
 path = 'contracts/traits/identity-registry-trait-v2.clar'
 clarity_version = 4

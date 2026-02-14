@@ -264,15 +264,7 @@
 (define-public (unset-agent-wallet (agent-id uint))
   (begin
     (asserts! (is-authorized agent-id tx-sender) ERR_NOT_AUTHORIZED)
-    (map-delete agent-wallets agent-id)
-    (print {
-      notification: "MetadataSet",
-      payload: {
-        agent-id: agent-id,
-        key: RESERVED_KEY_AGENT_WALLET,
-        value-len: u0
-      }
-    })
+    (clear-agent-wallet agent-id)
     (ok true)
   )
 )
@@ -283,18 +275,10 @@
     (let ((actual-owner (unwrap! (nft-get-owner? agent-identity token-id) ERR_AGENT_NOT_FOUND)))
       (asserts! (is-eq sender actual-owner) ERR_NOT_AUTHORIZED)
       ;; Clear agent wallet before transfer
-      (map-delete agent-wallets token-id)
+      (clear-agent-wallet token-id)
       ;; Update reverse lookup: remove sender, set recipient
       (map-delete agent-id-by-owner sender)
       (map-set agent-id-by-owner recipient token-id)
-      (print {
-        notification: "MetadataSet",
-        payload: {
-          agent-id: token-id,
-          key: RESERVED_KEY_AGENT_WALLET,
-          value-len: u0
-        }
-      })
       (try! (nft-transfer? agent-identity token-id sender recipient))
       (print {
         notification: "Transfer",
@@ -373,6 +357,20 @@
 ;;
 
 ;; private functions
+
+(define-private (clear-agent-wallet (agent-id uint))
+  (begin
+    (map-delete agent-wallets agent-id)
+    (print {
+      notification: "MetadataSet",
+      payload: {
+        agent-id: agent-id,
+        key: RESERVED_KEY_AGENT_WALLET,
+        value-len: u0
+      }
+    })
+  )
+)
 
 (define-private (metadata-fold-entry
   (entry {key: (string-utf8 128), value: (buff 512)})

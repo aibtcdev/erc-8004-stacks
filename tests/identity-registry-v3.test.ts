@@ -108,6 +108,33 @@ describe("identity-registry-v3 reverse lookup", () => {
     });
   });
 
+  describe("unset-agent-wallet clears reverse lookup", () => {
+    it("clears reverse lookup when wallet is unset", () => {
+      simnet.callPublicFn(CONTRACT, "register", [], wallet1);
+
+      // Verify reverse lookup is set
+      let result = simnet.callReadOnlyFn(
+        CONTRACT,
+        "get-agent-id-by-owner",
+        [Cl.principal(wallet1)],
+        wallet1
+      );
+      expect(result.result).toBeSome(uintCV(0n));
+
+      // Unset agent wallet
+      simnet.callPublicFn(CONTRACT, "unset-agent-wallet", [Cl.uint(0)], wallet1);
+
+      // Reverse lookup should be cleared
+      result = simnet.callReadOnlyFn(
+        CONTRACT,
+        "get-agent-id-by-owner",
+        [Cl.principal(wallet1)],
+        wallet1
+      );
+      expect(result.result).toBeNone();
+    });
+  });
+
   describe("transfer updates reverse lookup", () => {
     it("updates reverse lookup on transfer", () => {
       // wallet1 registers

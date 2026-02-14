@@ -274,10 +274,9 @@
     (asserts! (is-eq tx-sender sender) ERR_INVALID_SENDER)
     (let ((actual-owner (unwrap! (nft-get-owner? agent-identity token-id) ERR_AGENT_NOT_FOUND)))
       (asserts! (is-eq sender actual-owner) ERR_NOT_AUTHORIZED)
-      ;; Clear agent wallet before transfer
+      ;; Clear agent wallet and reverse lookup before transfer
       (clear-agent-wallet token-id)
-      ;; Update reverse lookup: remove sender, set recipient
-      (map-delete agent-id-by-owner sender)
+      ;; Set reverse lookup for new owner
       (map-set agent-id-by-owner recipient token-id)
       (try! (nft-transfer? agent-identity token-id sender recipient))
       (print {
@@ -359,8 +358,15 @@
 ;; private functions
 
 (define-private (clear-agent-wallet (agent-id uint))
-  (begin
+  (let (
+    (wallet-opt (map-get? agent-wallets agent-id))
+  )
     (map-delete agent-wallets agent-id)
+    ;; Clear reverse lookup if wallet was set
+    (match wallet-opt wallet
+      (map-delete agent-id-by-owner wallet)
+      false
+    )
     (print {
       notification: "MetadataSet",
       payload: {

@@ -198,8 +198,11 @@
       (asserts! (not (is-eq tx-sender current-wallet)) ERR_WALLET_ALREADY_SET)
       true
     )
-    ;; Set new wallet
+    ;; Clear old wallet and reverse lookup
+    (clear-agent-wallet agent-id)
+    ;; Set new wallet and reverse lookup
     (map-set agent-wallets agent-id tx-sender)
+    (map-set agent-id-by-owner tx-sender agent-id)
     (print {
       notification: "MetadataSet",
       payload: {
@@ -246,8 +249,11 @@
     )
       ;; Verify signature is from new-wallet
       (asserts! (is-eq recovered-principal new-wallet) ERR_INVALID_SIGNATURE)
-      ;; Set new wallet
+      ;; Clear old wallet and reverse lookup
+      (clear-agent-wallet agent-id)
+      ;; Set new wallet and reverse lookup
       (map-set agent-wallets agent-id new-wallet)
+      (map-set agent-id-by-owner new-wallet agent-id)
       (print {
         notification: "MetadataSet",
         payload: {

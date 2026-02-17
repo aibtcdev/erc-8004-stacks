@@ -36,6 +36,47 @@ Three singleton registry contracts, deployed once per chain:
 | `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.reputation-registry-trait-v2` | Trait |
 | `ST3YT0XW92E6T2FE59B2G5N2WNNFSBZ6MZKQS5D18.validation-registry-trait-v2` | Trait |
 
+## Discovery Chain
+
+ERC-8004 is the on-chain foundation for the aibtc AX (Agent Experience) discovery chain. Understanding where it fits in the broader agent lifecycle helps explain why identity registration matters beyond contract mechanics.
+
+### Lifecycle Position
+
+The [Genesis Agent Lifecycle](https://github.com/aibtcdev/aibtc-mcp-server/blob/main/skill/references/genesis-lifecycle.md) defines six levels agents progress through before reaching active status:
+
+```
+L0 Unverified → L1 Registered → L2 Genesis → L3 On-Chain Identity → L4 Reputation → Active Agent
+   (wallet)      (verified)       (airdrop)     (ERC-8004 register)   (bootstrapped)  (checking in)
+```
+
+ERC-8004 identity registration is **L3** in this lifecycle. An agent at L2 Genesis (has received a BTC airdrop) uses the `register_identity` MCP tool to write its Bitcoin and Stacks addresses to this registry — making the agent discoverable on-chain.
+
+### Why Identity Comes Before Reputation
+
+The identity registry is the prerequisite for reputation bootstrapping (L4). Reputation feedback (`give-feedback`) requires a registered agent-id from the identity registry. Without L3, agents cannot:
+- Receive reputation signals from other agents or services
+- Appear in AX discovery results (agents are ranked by lifecycle completion)
+- Access trust-gated x402 endpoints that require verified on-chain identity
+
+### MCP Tool Abstraction
+
+Agents interacting with this registry through the [aibtc-mcp-server](https://github.com/aibtcdev/aibtc-mcp-server) do not need to call Clarity functions directly. The MCP tools abstract contract calls:
+
+| MCP Tool | Contract Function | Lifecycle |
+|----------|-------------------|-----------|
+| `register_identity` | `identity-registry-v2.register` | L2 → L3 |
+| `get_identity` | `identity-registry-v2.get-agent-wallet` + `owner-of` | Read L3 state |
+| `give_feedback` | `reputation-registry-v2.give-feedback` | L3 → L4 |
+| `get_reputation` | `reputation-registry-v2.get-summary` | Read L4 state |
+
+### Cross-References
+
+- **Genesis Lifecycle**: [genesis-lifecycle.md](https://github.com/aibtcdev/aibtc-mcp-server/blob/main/skill/references/genesis-lifecycle.md) — full L0–Active lifecycle with tool workflows
+- **MCP Server**: [aibtc-mcp-server](https://github.com/aibtcdev/aibtc-mcp-server) — `register_identity`, `get_identity`, `give_feedback`, `get_reputation` tools
+- **x402 Discovery**: Agents with L3+ identity are surfaced in x402-api and x402-sponsor-relay endpoint discovery
+
+---
+
 ## Identity Registry (`identity-registry-v2`)
 
 Agents are SIP-009 NFTs. Each agent gets a sequential uint ID, optional URI, key-value metadata, and an agent wallet (principal). Supports owner, operator (approval-for-all), and SIP-018 signature authorization.

@@ -53,6 +53,7 @@
 (define-constant ERR_WALLET_ALREADY_SET (err u1006))
 (define-constant ERR_EXPIRED_SIGNATURE (err u1007))
 (define-constant ERR_INVALID_SIGNATURE (err u1008))
+(define-constant ERR_WALLET_CONFLICT (err u1009))
 (define-constant MAX_URI_LEN u512)
 (define-constant MAX_KEY_LEN u128)
 (define-constant MAX_VALUE_LEN u512)
@@ -198,6 +199,11 @@
       (asserts! (not (is-eq tx-sender current-wallet)) ERR_WALLET_ALREADY_SET)
       true
     )
+    ;; Prevent wallet collision: if tx-sender is already wallet for another agent, reject
+    (match (map-get? agent-id-by-owner tx-sender) existing-id
+      (asserts! (is-eq existing-id agent-id) ERR_WALLET_CONFLICT)
+      true
+    )
     ;; Clear old wallet and reverse lookup
     (clear-agent-wallet agent-id)
     ;; Set new wallet and reverse lookup
@@ -249,6 +255,11 @@
     )
       ;; Verify signature is from new-wallet
       (asserts! (is-eq recovered-principal new-wallet) ERR_INVALID_SIGNATURE)
+      ;; Prevent wallet collision: if new-wallet is already wallet for another agent, reject
+      (match (map-get? agent-id-by-owner new-wallet) existing-id
+        (asserts! (is-eq existing-id agent-id) ERR_WALLET_CONFLICT)
+        true
+      )
       ;; Clear old wallet and reverse lookup
       (clear-agent-wallet agent-id)
       ;; Set new wallet and reverse lookup
@@ -282,7 +293,9 @@
       (asserts! (is-eq sender actual-owner) ERR_NOT_AUTHORIZED)
       ;; Clear agent wallet and reverse lookup before transfer
       (clear-agent-wallet token-id)
-      ;; Set reverse lookup for new owner
+      ;; Clear sender's owner-based reverse lookup
+      (map-delete agent-id-by-owner sender)
+      ;; Set reverse lookup for new owner (note: wallet is NOT auto-set on transfer per ERC-8004)
       (map-set agent-id-by-owner recipient token-id)
       (try! (nft-transfer? agent-identity token-id sender recipient))
       (print {

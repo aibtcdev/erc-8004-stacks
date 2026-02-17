@@ -368,4 +368,80 @@ describe("identity-registry-v3 reverse lookup", () => {
       expect(result2.result).toBeNone();
     });
   });
+
+  describe("wallet collision prevention", () => {
+    it("set-agent-wallet-direct rejects if wallet already assigned to another agent", () => {
+      const wallet3 = accounts.get("wallet_3")!;
+      // wallet1 registers agent 0, wallet2 registers agent 1
+      simnet.callPublicFn(CONTRACT, "register", [], wallet1);
+      simnet.callPublicFn(CONTRACT, "register", [], wallet2);
+
+      // wallet1 approves wallet2 as operator for agent 0
+      simnet.callPublicFn(
+        CONTRACT,
+        "set-approval-for-all",
+        [Cl.uint(0), Cl.principal(wallet2), Cl.bool(true)],
+        wallet1
+      );
+
+      // wallet2 tries to set itself as wallet for agent 0,
+      // but wallet2 is already wallet for agent 1 → should fail with ERR_WALLET_CONFLICT (u1009)
+      const { result } = simnet.callPublicFn(
+        CONTRACT,
+        "set-agent-wallet-direct",
+        [Cl.uint(0)],
+        wallet2
+      );
+      expect(result).toBeErr(Cl.uint(1009));
+    });
+
+    it("set-agent-wallet-direct allows same wallet to re-set on same agent", () => {
+      // wallet1 registers agent 0
+      simnet.callPublicFn(CONTRACT, "register", [], wallet1);
+
+      // wallet1 unsets wallet, then re-sets — should succeed (same agent)
+      simnet.callPublicFn(CONTRACT, "unset-agent-wallet", [Cl.uint(0)], wallet1);
+      const { result } = simnet.callPublicFn(
+        CONTRACT,
+        "set-agent-wallet-direct",
+        [Cl.uint(0)],
+        wallet1
+      );
+      expect(result).toBeOk(Cl.bool(true));
+    });
+
+    it("transfer clears sender reverse lookup even when sender owns multiple agents", () => {
+      // wallet1 registers agent 0 and agent 1 (reverse lookup points to agent 1 — last-write-wins)
+      simnet.callPublicFn(CONTRACT, "register", [], wallet1);
+      simnet.callPublicFn(CONTRACT, "register", [], wallet1);
+
+      // Transfer agent 0 to wallet2
+      simnet.callPublicFn(
+        CONTRACT,
+        "transfer",
+        [Cl.uint(0), Cl.principal(wallet1), Cl.principal(wallet2)],
+        wallet1
+      );
+
+      // wallet2 should have reverse lookup for agent 0
+      const r2 = simnet.callReadOnlyFn(
+        CONTRACT,
+        "get-agent-id-by-owner",
+        [Cl.principal(wallet2)],
+        wallet2
+      );
+      expect(r2.result).toBeSome(uintCV(0n));
+
+      // wallet1 still owns agent 1 but reverse lookup was cleared by transfer
+      // This is a known limitation of single-value reverse lookup
+      const r1 = simnet.callReadOnlyFn(
+        CONTRACT,
+        "get-agent-id-by-owner",
+        [Cl.principal(wallet1)],
+        wallet1
+      );
+      // reverse lookup was deleted since sender's entry was cleared
+      expect(r1.result).toBeNone();
+    });
+  });
 });

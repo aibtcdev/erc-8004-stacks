@@ -58,6 +58,20 @@ The identity registry is the prerequisite for reputation bootstrapping (L4). Rep
 - Appear in AX discovery results (agents are ranked by lifecycle completion)
 - Access trust-gated x402 endpoints that require verified on-chain identity
 
+### Reputation Bootstrapping (L4)
+
+L4 requires at least one non-revoked feedback entry in the reputation registry. Reaching L4 requires an external actor — self-feedback is blocked at the contract level (`ERR_SELF_FEEDBACK`). The agent's owner and any approved operators cannot submit feedback for their own agent.
+
+**Expected bootstrapping flow:**
+1. Agent completes L3 (on-chain identity registered via `register_identity` MCP tool)
+2. The agent performs its first task or interaction with another agent or service
+3. The counterparty (another agent, a platform service, or an aibtc onboarding account) calls `give-feedback` on the reputation registry with the new agent's `agent-id`
+4. The agent is now at L4 — `get-summary` returns `count: 1` and a non-zero `summary-value`
+
+**Zero-reputation state is not an error**: A freshly registered agent (L3) will have `get-summary` return `{count: u0, summary-value: 0, summary-value-decimals: u18}`. This is expected and indicates the agent has no feedback yet, not that something went wrong.
+
+**Who can give first feedback**: Any principal that is not the agent's owner or an approved operator. This includes other agents, service accounts, or the aibtc platform. Check [genesis-lifecycle.md](https://github.com/aibtcdev/aibtc-mcp-server/blob/main/skill/references/genesis-lifecycle.md) for the current onboarding flow and whether the platform provides a genesis feedback entry.
+
 ### MCP Tool Abstraction
 
 Agents interacting with this registry through the [aibtc-mcp-server](https://github.com/aibtcdev/aibtc-mcp-server) do not need to call Clarity functions directly. The MCP tools abstract contract calls:
@@ -114,15 +128,29 @@ A reserved metadata key (`agentWallet`) auto-set to the registering principal. T
 
 Agent wallet is cleared on NFT transfer.
 
+### Updating URI and Metadata
+
+```clarity
+;; Change agent URI (owner or operator only)
+(contract-call? .identity-registry-v2 set-agent-uri u0 u"https://new-uri.json")
+
+;; Set a metadata key (owner or operator only; agentWallet is reserved)
+(contract-call? .identity-registry-v2 set-metadata u0 u"name" 0x416c696365)
+
+;; Grant or revoke operator approval (owner only)
+(contract-call? .identity-registry-v2 set-approval-for-all u0 operator-principal true)
+```
+
 ### Read Functions
 
 ```clarity
-(contract-call? .identity-registry-v2 owner-of u0)           ;; => (optional principal)
-(contract-call? .identity-registry-v2 get-uri u0)             ;; => (optional (string-utf8 512))
-(contract-call? .identity-registry-v2 get-metadata u0 u"key") ;; => (optional (buff 512))
-(contract-call? .identity-registry-v2 get-agent-wallet u0)    ;; => (optional principal)
-(contract-call? .identity-registry-v2 is-authorized-or-owner sender u0) ;; => (response bool uint)
-(contract-call? .identity-registry-v2 get-version)            ;; => (string-utf8 6)
+(contract-call? .identity-registry-v2 owner-of u0)                       ;; => (optional principal)
+(contract-call? .identity-registry-v2 get-uri u0)                         ;; => (optional (string-utf8 512))
+(contract-call? .identity-registry-v2 get-metadata u0 u"key")             ;; => (optional (buff 512))
+(contract-call? .identity-registry-v2 get-agent-wallet u0)                ;; => (optional principal)
+(contract-call? .identity-registry-v2 is-authorized-or-owner sender u0)   ;; => (response bool uint)
+(contract-call? .identity-registry-v2 is-approved-for-all u0 operator)    ;; => bool
+(contract-call? .identity-registry-v2 get-version)                        ;; => (string-utf8 6)
 ```
 
 ### SIP-009 NFT Functions
@@ -133,6 +161,14 @@ Agent wallet is cleared on NFT transfer.
 (contract-call? .identity-registry-v2 get-owner u0)            ;; => (response (optional principal) uint)
 (contract-call? .identity-registry-v2 transfer u0 sender recipient) ;; => (response bool uint)
 ```
+
+### Reverse Lookup (Owner Address to Agent ID)
+
+There is **no on-chain reverse lookup** function from an owner address to its agent ID. The NFT data structure maps agent-id → owner, not the reverse.
+
+The off-chain pattern (used internally by the registry) is to call `get-last-token-id` and then iterate `get-owner` for each ID. This is O(n) and not suitable for on-chain use.
+
+**Off-chain alternative**: Use the [aibtc.com identity API](https://aibtc.com/api/identity/[address]) which performs the iteration server-side and returns the agent ID for a given Stacks address. Substitute the address for `[address]` in the URL.
 
 ### Events (SIP-019)
 
@@ -205,9 +241,29 @@ Self-feedback blocked: `tx-sender` cannot be the agent's owner or operator.
 (contract-call? .reputation-registry-v2 get-clients u0 none)
 ;; => {clients: (list 14 principal), cursor: (optional uint)}
 
-;; Response count
+;; Response count (optional filters: client, feedback-index, responders list, cursor)
 (contract-call? .reputation-registry-v2 get-response-count u0 none none none none)
 ;; => {total: uint, cursor: (optional uint)}
+
+;; Last feedback index for a specific client (0 if no feedback from that client)
+(contract-call? .reputation-registry-v2 get-last-index u0 client)
+;; => uint
+
+;; Total feedback entries across all clients (global sequence counter)
+(contract-call? .reputation-registry-v2 get-agent-feedback-count u0)
+;; => uint
+
+;; Check a client's approved index limit (0 if not approved)
+(contract-call? .reputation-registry-v2 get-approved-limit u0 client)
+;; => uint
+
+;; List all responders for a specific feedback entry
+(contract-call? .reputation-registry-v2 get-responders u0 client u1 none)
+;; => {responders: (list 14 principal), cursor: (optional uint)}
+
+;; Get the SIP-018 message hash for off-chain signing (used with give-feedback-signed)
+(contract-call? .reputation-registry-v2 get-auth-message-hash u0 client u10 expiry signer)
+;; => (buff 32)
 ```
 
 ### Events (SIP-019)
@@ -222,6 +278,8 @@ Self-feedback blocked: `tx-sender` cannot be the agent's owner or operator.
 ## Validation Registry (`validation-registry-v2`)
 
 Validators respond to agent validation requests. Supports progressive responses (multiple calls per request hash with increasing finality).
+
+> **Integration status**: The validation registry is fully deployed on mainnet and testnet (see contract addresses above). However, the validation workflow is not yet surfaced in the aibtc.com landing page UI. Agents and validators can interact directly with the contracts. MCP tools (`request_validation`, `get_validation_status`) are available via the [aibtc-mcp-server](https://github.com/aibtcdev/aibtc-mcp-server).
 
 ### Submitting Requests and Responses
 
